@@ -8,4 +8,5 @@ urlpatterns = [
     path('interview-kit/', views.InterviewKitView.as_view(), name='interview-kit'),
     path('history/', views.HistoryView.as_view(), name='history'),
     path('compare/', views.CompareView.as_view(), name='compare'),
+    path('health/', views.HealthCheckView.as_view(), name='health'),
 ]

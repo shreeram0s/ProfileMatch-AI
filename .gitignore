@@ -164,3 +164,11 @@ Thumbs.db
 
 # Render deployment files
 render.yaml
+
+# Test files
+test_*.py
+check_*.py
+*_test.py
+
+# Development database
+*.sqlite3

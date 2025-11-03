@@ -3,11 +3,14 @@ import re
 import json
 from django.conf import settings
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
 from django.views import View
-from .models import Resume, Job, Analysis
-from .ml_analysis import TextExtractor, ResumeAnalyzer
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+import json
+from .models import Resume, Analysis
+from .ml_analysis import ResumeAnalyzer, TextExtractor, calculate_similarity
+from .job_fetcher import fetch_jobs_from_adzuna, fetch_youtube_videos
+from django.conf import settings
 
 # Common skills database (in a real app, this would be more extensive)
 COMMON_SKILLS = [
@@ -661,3 +664,11 @@ class CompareView(View):
             return JsonResponse({'error': 'One or both files not found'}, status=404)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class HealthCheckView(View):
+    def get(self, request):
+        return JsonResponse({
+            'status': 'healthy',
+            'message': 'ProFileMatch backend is running successfully'
+        })

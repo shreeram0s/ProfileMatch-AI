@@ -40,12 +40,18 @@ ProFileMatch is an intelligent career development platform that helps job seeker
 ### Environment Variables
 Create a `.env` file in the backend directory with the following variables:
 ```
-DATABASE_URL=your_postgresql_database_url
+SECRET_KEY=your_django_secret_key
+DEBUG=False
+ALLOWED_HOSTS=your-domain.com,another-domain.com
+DB_NAME=your_database_name
+DB_USER=your_database_user
+DB_PASSWORD=your_database_password
+DB_HOST=your_database_host
+DB_PORT=5432
 YOUTUBE_API_KEY=your_youtube_api_key
 ADZUNA_APP_ID=your_adzuna_app_id
 ADZUNA_APP_KEY=your_adzuna_app_key
-SECRET_KEY=your_django_secret_key
-DEBUG=False
+CORS_ALLOWED_ORIGINS=https://your-frontend-domain.com,https://another-frontend-domain.com
 ```
 
 ### Local Development Setup

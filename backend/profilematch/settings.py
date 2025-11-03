@@ -22,12 +22,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-5z!#7z$3%3+5^2!+x%3!+x%3!+x%3!+x%3!+x%3!+x%3!+x%'
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-5z!#7z$3%3+5^2!+x%3!+x%3!+x%3!+x%3!+x%3!+x%3!+x%')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'profilematch-backend.onrender.com']
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=lambda v: [s.strip() for s in v.split(',')])
 
 
 # Application definition
@@ -83,11 +83,11 @@ WSGI_APPLICATION = 'profilematch.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'magic2',
-        'USER': 'magic2_user',
-        'PASSWORD': 'UeMppumFYJRDjOFoYzdqszc0Pfo9K6R3',
-        'HOST': 'dpg-d43qarbe5dus73a89i0g-a.singapore-postgres.render.com',
-        'PORT': '5432',
+        'NAME': config('DB_NAME', default='magic2'),
+        'USER': config('DB_USER', default='magic2_user'),
+        'PASSWORD': config('DB_PASSWORD', default='UeMppumFYJRDjOFoYzdqszc0Pfo9K6R3'),
+        'HOST': config('DB_HOST', default='dpg-d43qarbe5dus73a89i0g-a.singapore-postgres.render.com'),
+        'PORT': config('DB_PORT', default='5432'),
         'OPTIONS': {
             'sslmode': 'require',
         },
@@ -141,15 +141,9 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS settings
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5176",
-    "http://localhost:5177",
-    "http://127.0.0.1:5176",
-    "http://127.0.0.1:5177",
-    "https://profilematch-frontend.onrender.com",
-]
+CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:5176,http://localhost:5177,http://127.0.0.1:5176,http://127.0.0.1:5177,https://profilematch-frontend.onrender.com', cast=lambda v: [s.strip() for s in v.split(',')])
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=True, cast=bool)
 
 # REST Framework settings
 REST_FRAMEWORK = {
