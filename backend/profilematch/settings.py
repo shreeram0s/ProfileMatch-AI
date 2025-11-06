@@ -132,6 +132,9 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
+# Create staticfiles directory if it doesn't exist
+os.makedirs(STATIC_ROOT, exist_ok=True)
+
 # Enable WhiteNoise compression and caching
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
