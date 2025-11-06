@@ -1,11 +1,10 @@
 services:
   - type: web
     name: profilematch-backend
-    env: python
+    env: docker
     plan: free
     rootDir: backend
-    buildCommand: "pip install --upgrade pip && pip install -r requirements.txt && python manage.py collectstatic --noinput"
-    startCommand: "python manage.py migrate && gunicorn profilematch.wsgi:application --bind 0.0.0.0:$PORT"
+    dockerfilePath: Dockerfile
     envVars:
       - key: SECRET_KEY
         generateValue: true
@@ -13,11 +12,24 @@ services:
         value: "False"
       - key: ALLOWED_HOSTS
         value: "profilematch-backend.onrender.com"
-      - key: FRONTEND_ORIGIN
+      - key: CORS_ALLOWED_ORIGINS
         value: "https://profilematch-frontend.onrender.com"
-      # Provide DB_* and API keys via Render Dashboard
-      # DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT
-      # YOUTUBE_API_KEY, ADZUNA_APP_ID, ADZUNA_APP_KEY
+      - key: DB_NAME
+        value: "magic2"
+      - key: DB_USER
+        value: "magic2_user"
+      - key: DB_PASSWORD
+        value: "UeMppumFYJRDjOFoYzdqszc0Pfo9K6R3"
+      - key: DB_HOST
+        value: "dpg-d43qarbe5dus73a89i0g-a.singapore-postgres.render.com"
+      - key: DB_PORT
+        value: "5432"
+      - key: YOUTUBE_API_KEY
+        value: "AIzaSyCC8YoN1GeLvQXYbOei_ykpoQZELHyD6HY"
+      - key: ADZUNA_APP_ID
+        value: "962974fe"
+      - key: ADZUNA_APP_KEY
+        value: "cb18422dd62921861ad8d4b423942105"
 
   - type: web
     name: profilematch-frontend

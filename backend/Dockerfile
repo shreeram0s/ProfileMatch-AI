@@ -22,5 +22,9 @@ COPY . .
 
 EXPOSE 8000
 
-# Run migrations and start server
-CMD ["sh", "-c", "python manage.py migrate && gunicorn profilematch.wsgi:application --bind 0.0.0.0:8000"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/ || exit 1
+
+# Run server (migrations will be handled by Render)
+CMD ["gunicorn", "profilematch.wsgi:application", "--bind", "0.0.0.0:8000"]
