@@ -6,7 +6,19 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5176,
-    host: true
+    host: true,
+    strictPort: false
+  },
+  preview: {
+    host: true,
+    port: 8080,
+    strictPort: false,
+    allowedHosts: [
+      'localhost',
+      '127.0.0.1',
+      'projektafrontend.onrender.com',
+      'profilematch-frontend.onrender.com'
+    ]
   },
   base: './',
   build: {
