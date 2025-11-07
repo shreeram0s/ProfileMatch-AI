@@ -437,9 +437,9 @@ const InterviewPrepPage = () => {
                     Learning Resources
                   </h2>
                   
-                  {interviewData.youtube_videos && Object.keys(interviewData.youtube_videos).length > 0 ? (
+                  {interviewData.youtube_recommendations && Object.keys(interviewData.youtube_recommendations).length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {Object.entries(interviewData.youtube_videos).map(([skill, videos], skillIndex) => (
+                      {Object.entries(interviewData.youtube_recommendations).map(([skill, videos], skillIndex) => (
                         <motion.div
                           key={skillIndex}
                           initial={{ opacity: 0, y: 20 }}

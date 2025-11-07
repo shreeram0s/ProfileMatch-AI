@@ -9,7 +9,7 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 from .models import Resume, Analysis
 from .ml_analysis import ResumeAnalyzer, TextExtractor, calculate_similarity
-from .job_fetcher import fetch_jobs_from_adzuna, fetch_youtube_videos
+from .job_fetcher import fetch_jobs_from_adzuna
 from django.conf import settings
 
 # Common skills database (in a real app, this would be more extensive)
@@ -227,43 +227,7 @@ def fetch_jobs_from_adzuna(skills):
     
     return []
 
-def fetch_youtube_videos(skills):
-    """Fetch YouTube tutorials for skills"""
-    try:
-        from googleapiclient.discovery import build
-        
-        api_key = settings.YOUTUBE_API_KEY
-        service_name = 'youtube'
-        version = 'v3'
-        
-        videos = {}
-        
-        if not api_key:
-            return videos
-            
-        youtube = build(service_name, version, developerKey=api_key)
-        
-        for skill in skills[:5]:  # Limit to first 5 skills
-            search_response = youtube.search().list(
-                q=f"{skill} tutorial",
-                part='snippet',
-                type='video',
-                maxResults=3
-            ).execute()
-            
-            videos[skill] = []
-            for search_result in search_response.get('items', []):
-                video = {
-                    'title': search_result['snippet']['title'],
-                    'url': f"https://www.youtube.com/watch?v={search_result['id']['videoId']}",
-                    'thumbnail': search_result['snippet']['thumbnails']['default']['url']
-                }
-                videos[skill].append(video)
-    except Exception as e:
-        print(f"Error fetching YouTube videos: {e}")
-        videos = {}
-    
-    return videos
+# fetch_youtube_videos function removed - using YouTubeRecommendationEngine from ml_analysis.py instead
 
 @method_decorator(csrf_exempt, name='dispatch')
 class UploadView(View):
@@ -583,14 +547,16 @@ class InterviewKitView(View):
                         'answers': [answer.format(skill=skill) for answer in template['answers']]
                     })
             
-            # Fetch YouTube tutorials
-            youtube_videos = fetch_youtube_videos(skills)
+            # Fetch YouTube tutorials using YouTubeRecommendationEngine
+            from .ml_analysis import YouTubeRecommendationEngine
+            youtube_engine = YouTubeRecommendationEngine(settings.YOUTUBE_API_KEY)
+            youtube_videos = youtube_engine.get_skill_recommendations(skills)
             
             return JsonResponse({
                 'technical_questions': technical_questions[:10],  # Limit to 10
                 'behavioral_questions': behavioral_questions[:5],  # Limit to 5
                 'situational_questions': situational_questions[:5],  # Limit to 5
-                'youtube_videos': youtube_videos
+                'youtube_recommendations': youtube_videos
             })
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
