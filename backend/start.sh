@@ -1,11 +1,13 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Start script for Render
+
+set -o errexit
 
 echo "Running database migrations..."
 python manage.py migrate --noinput
 
 echo "Starting Gunicorn server..."
-gunicorn profilematch.wsgi:application \
+exec gunicorn profilematch.wsgi:application \
     --bind 0.0.0.0:$PORT \
     --workers 1 \
     --threads 2 \
