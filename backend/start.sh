@@ -6,17 +6,19 @@ python manage.py migrate --noinput
 
 echo "Starting Gunicorn server..."
 echo "Port: ${PORT}"
-echo "Binding to: 0.0.0.0:${PORT}"
+echo "Memory-optimized configuration for free tier"
 
 exec gunicorn profilematch.wsgi:application \
     --bind 0.0.0.0:${PORT} \
-    --workers 2 \
-    --threads 4 \
+    --workers 1 \
+    --threads 1 \
     --worker-class sync \
-    --worker-tmp-dir /dev/shm \
-    --timeout 120 \
-    --keep-alive 5 \
+    --max-requests 1000 \
+    --max-requests-jitter 50 \
+    --timeout 300 \
+    --graceful-timeout 30 \
+    --keep-alive 2 \
     --log-level info \
     --access-logfile - \
     --error-logfile - \
-    --log-file -
+    --preload
