@@ -1,10 +1,8 @@
 FROM python:3.9-slim
 
-# Set environment variables
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=off \
-    PIP_DISABLE_PIP_VERSION_CHECK=on
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -12,35 +10,33 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
-
-# Copy and install requirements
+# Copy and install Python dependencies
 COPY requirements.txt .
-RUN echo "Installing Python packages..." && \
-    pip install --no-cache-dir -r requirements.txt && \
-    echo "Python packages installed successfully"
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Download models and data
-RUN echo "Downloading spaCy model..." && \
-    python -m spacy download en_core_web_sm && \
-    echo "spaCy model downloaded" && \
-    echo "Downloading NLTK data..." && \
-    python -c "import nltk; nltk.download('wordnet'); nltk.download('omw-1.4'); nltk.download('punkt'); nltk.download('stopwords')" && \
-    echo "NLTK data downloaded"
+# Download NLP models during build
+RUN python -m spacy download en_core_web_sm
+RUN python -c "import nltk; nltk.download('wordnet'); nltk.download('omw-1.4'); nltk.download('punkt'); nltk.download('stopwords')"
 
-# Copy application
+# Copy application code
 COPY . .
 
-# Collect static files
-RUN echo "Collecting static files..." && \
-    python manage.py collectstatic --noinput || echo "Static collection skipped" && \
-    echo "Static files ready"
+# Collect static files (ignore errors if SECRET_KEY not set yet)
+RUN python manage.py collectstatic --noinput --clear || true
 
 # Create media directory
-RUN mkdir -p media/resumes && echo "Media directory created"
+RUN mkdir -p media/resumes
 
 # Expose port
 EXPOSE 8000
 
-# Start command
-CMD ["sh", "-c", "echo 'Starting application...' && echo 'Running migrations...' && python manage.py migrate --noinput && echo 'Migrations complete' && echo 'Starting Gunicorn on port '$PORT'...' && exec gunicorn profilematch.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --log-level debug --access-logfile - --error-logfile -"]
+# Run migrations and start server
+CMD python manage.py migrate --noinput && \
+    gunicorn profilematch.wsgi:application \
+    --bind 0.0.0.0:${PORT:-8000} \
+    --workers 1 \
+    --threads 2 \
+    --timeout 120 \
+    --access-logfile - \
+    --error-logfile - \
+    --log-level info

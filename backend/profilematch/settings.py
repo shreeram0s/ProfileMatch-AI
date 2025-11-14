@@ -27,7 +27,7 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-5z!#7z$3%3+5^2!+x%3!+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,profilematch-backend.onrender.com,projektabackend.onrender.com', cast=lambda v: [s.strip() for s in v.split(',')])
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,*.onrender.com', cast=lambda v: [s.strip() for s in v.split(',')])
 
 
 # Application definition
@@ -154,27 +154,13 @@ os.makedirs(MEDIA_ROOT, exist_ok=True)
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS settings
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5176",
-    "http://localhost:5177",
-    "http://localhost:5178",
-    "http://localhost:5179",
-    "http://localhost:5180",
-    "http://localhost:5181",
-    "http://localhost:5182",
-    "http://127.0.0.1:5176",
-    "http://127.0.0.1:5177",
-    "http://127.0.0.1:5178",
-    "http://127.0.0.1:5179",
-    "http://127.0.0.1:5180",
-    "http://127.0.0.1:5181",
-    "http://127.0.0.1:5182",
-    "https://profilematch-frontend.onrender.com",
-    "https://projektafrontend.onrender.com"
-]
+CORS_ALLOWED_ORIGINS = config(
+    'CORS_ALLOWED_ORIGINS',
+    default='http://localhost:5176,http://localhost:5177,http://127.0.0.1:5176,http://127.0.0.1:5177,https://profilematch-frontend.onrender.com',
+    cast=lambda v: [s.strip() for s in v.split(',')]
+)
 
 CORS_ALLOW_ALL_ORIGINS = False
-
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_HEADERS = [
