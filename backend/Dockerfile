@@ -16,24 +16,35 @@ WORKDIR /app
 
 # Copy and install requirements
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN echo "Installing Python packages..." && \
+    pip install --no-cache-dir -r requirements.txt && \
+    echo "Python packages installed successfully"
 
 # Download models and data
-RUN python -m spacy download en_core_web_sm && \
-    python -c "import nltk; nltk.download('wordnet'); nltk.download('omw-1.4'); nltk.download('punkt'); nltk.download('stopwords')"
+RUN echo "Downloading spaCy model..." && \
+    python -m spacy download en_core_web_sm && \
+    echo "spaCy model downloaded" && \
+    echo "Downloading NLTK data..." && \
+    python -c "import nltk; nltk.download('wordnet'); nltk.download('omw-1.4'); nltk.download('punkt'); nltk.download('stopwords')" && \
+    echo "NLTK data downloaded"
 
 # Copy application
 COPY . .
 
 # Collect static files
-RUN python manage.py collectstatic --noinput || true
+RUN echo "Collecting static files..." && \
+    python manage.py collectstatic --noinput || echo "Static collection skipped" && \
+    echo "Static files ready"
 
 # Create media directory
-RUN mkdir -p media/resumes
+RUN mkdir -p media/resumes && echo "Media directory created"
 
 # Expose port
 EXPOSE 8000
 
 # Start command
-CMD python manage.py migrate --noinput && \
-    gunicorn profilematch.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --timeout 120
+CMD echo "Starting application..." && \
+    echo "Running migrations..." && \
+    python manage.py migrate --noinput && \
+    echo "Starting Gunicorn on port $PORT..." && \
+    gunicorn profilematch.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --log-level debug
