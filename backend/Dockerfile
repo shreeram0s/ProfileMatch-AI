@@ -43,8 +43,4 @@ RUN mkdir -p media/resumes && echo "Media directory created"
 EXPOSE 8000
 
 # Start command
-CMD echo "Starting application..." && \
-    echo "Running migrations..." && \
-    python manage.py migrate --noinput && \
-    echo "Starting Gunicorn on port $PORT..." && \
-    gunicorn profilematch.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --log-level debug
+CMD ["sh", "-c", "echo 'Starting application...' && echo 'Running migrations...' && python manage.py migrate --noinput && echo 'Migrations complete' && echo 'Starting Gunicorn on port '$PORT'...' && exec gunicorn profilematch.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --log-level debug --access-logfile - --error-logfile -"]
