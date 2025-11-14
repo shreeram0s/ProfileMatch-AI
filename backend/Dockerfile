@@ -21,14 +21,15 @@ RUN python -c "import nltk; nltk.download('wordnet'); nltk.download('omw-1.4'); 
 # Copy application code
 COPY . .
 
+# Copy and set permissions for startup script
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
+
 # Collect static files (ignore errors if SECRET_KEY not set yet)
 RUN python manage.py collectstatic --noinput --clear || true
 
 # Create media directory
 RUN mkdir -p media/resumes
-
-# Health check script
-RUN echo '#!/bin/sh\npython manage.py migrate --noinput\nexec gunicorn profilematch.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --log-level info' > /start.sh && chmod +x /start.sh
 
 # Start server
 CMD ["/start.sh"]
