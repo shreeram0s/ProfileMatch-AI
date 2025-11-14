@@ -27,8 +27,8 @@ RUN python manage.py collectstatic --noinput --clear || true
 # Create media directory
 RUN mkdir -p media/resumes
 
-# Expose port
-EXPOSE 8000
+# Health check script
+RUN echo '#!/bin/sh\npython manage.py migrate --noinput\nexec gunicorn profilematch.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --log-level info' > /start.sh && chmod +x /start.sh
 
-# Run migrations and start server
-CMD sh -c "python manage.py migrate --noinput && gunicorn profilematch.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 1 --threads 2 --timeout 120 --access-logfile - --error-logfile - --log-level info"
+# Start server
+CMD ["/start.sh"]
