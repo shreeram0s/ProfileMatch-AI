@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
+import { useInView } from 'react-intersection-observer';
 import { 
   BarChart, 
   Bar, 
@@ -19,12 +20,21 @@ import {
   TrendingUp,
   ArrowRight,
   FileText,
-  Target
+  Target,
+  Brain
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import ParticleBackground from '../components/ParticleBackground';
+import AnimatedCard from '../components/AnimatedCard';
+import AnimatedCounter from '../components/AnimatedCounter';
+import { useTheme } from '../components/theme-provider';
 
 const DashboardPage = () => {
+  const { theme } = useTheme();
   const [analysisData, setAnalysisData] = useState(null);
+  const { scrollYProgress } = useScroll();
+  const opacity = useTransform(scrollYProgress, [0, 0.2], [1, 0.8]);
+  const [heroRef, heroInView] = useInView({ triggerOnce: true, threshold: 0.1 });
 
   useEffect(() => {
     // Get analysis data from localStorage
@@ -101,182 +111,228 @@ const DashboardPage = () => {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen relative">
+      <ParticleBackground theme={theme} />
+      
       {/* Hero Section */}
-      <section className="container mx-auto px-4 sm:px-6 py-16 md:py-24">
-        <div className="max-w-4xl mx-auto text-center">
+      <section className="container mx-auto px-4 sm:px-6 py-16 md:py-32 relative">
+        <motion.div
+          ref={heroRef}
+          style={{ opacity }}
+          className="max-w-5xl mx-auto text-center"
+        >
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            initial={{ opacity: 0, y: 30 }}
+            animate={heroInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
           >
-            <h1 className="text-3xl md:text-5xl font-bold mb-6">
-              Analytics <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600">Dashboard</span>
+            <motion.div 
+              className="inline-flex items-center gap-2 px-6 py-3 glass-effect rounded-full text-sm font-medium mb-8"
+              whileHover={{ scale: 1.05 }}
+            >
+              <motion.div
+                animate={{ rotate: [0, 360] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+              >
+                <BarChart3 className="h-4 w-4 text-primary" />
+              </motion.div>
+              <span className="text-gradient">Advanced Analytics</span>
+            </motion.div>
+
+            <h1 className="text-4xl md:text-6xl font-bold mb-6">
+              Your Career{' '}
+              <span className="text-gradient animate-gradient">Dashboard</span>
             </h1>
             
-            <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-3xl mx-auto">
-              Visualize your skills, match scores, and career insights with interactive charts and graphs
+            <p className="text-xl md:text-2xl text-muted-foreground mb-10 max-w-3xl mx-auto leading-relaxed">
+              Visualize your skills, match scores, and career insights with interactive charts
             </p>
           </motion.div>
-        </div>
+        </motion.div>
       </section>
 
       {/* Dashboard Content */}
       <section className="container mx-auto px-4 sm:px-6 py-16">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           {analysisData ? (
             <div className="space-y-12">
-              {/* Score Overview */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5 }}
-                  className="bg-background border rounded-2xl p-6 text-center"
-                >
-                  <div className="text-4xl font-bold text-primary mb-2">
-                    {getRoundedPercentage(analysisData.overall_score || analysisData.match_score)}%
-                  </div>
-                  <div className="text-muted-foreground">Overall Match</div>
-                </motion.div>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.1 }}
-                  className="bg-background border rounded-2xl p-6 text-center"
-                >
-                  <div className="text-4xl font-bold text-blue-500 mb-2">
-                    {getRoundedPercentage(analysisData.semantic_similarity)}%
-                  </div>
-                  <div className="text-muted-foreground">Semantic Similarity</div>
-                </motion.div>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.2 }}
-                  className="bg-background border rounded-2xl p-6 text-center"
-                >
-                  <div className="text-4xl font-bold text-purple-500 mb-2">
-                    {getRoundedPercentage(analysisData.skill_match_score)}%
-                  </div>
-                  <div className="text-muted-foreground">Skill Match</div>
-                </motion.div>
-              </div>
+              {/* Score Overview with Animated Cards */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
+                className="grid grid-cols-1 md:grid-cols-3 gap-6"
+              >
+                {[
+                  {
+                    value: getRoundedPercentage(analysisData.overall_score || analysisData.match_score),
+                    label: 'Overall Match',
+                    color: 'from-blue-500 to-blue-600',
+                    icon: <Target className="h-8 w-8" />
+                  },
+                  {
+                    value: getRoundedPercentage(analysisData.semantic_similarity),
+                    label: 'Semantic Similarity',
+                    color: 'from-purple-500 to-purple-600',
+                    icon: <Brain className="h-8 w-8" />
+                  },
+                  {
+                    value: getRoundedPercentage(analysisData.skill_match_score),
+                    label: 'Skill Match',
+                    color: 'from-pink-500 to-pink-600',
+                    icon: <TrendingUp className="h-8 w-8" />
+                  }
+                ].map((stat, index) => (
+                  <AnimatedCard
+                    key={index}
+                    delay={index * 0.1}
+                    glassmorphism={true}
+                    className="relative overflow-hidden"
+                  >
+                    <motion.div
+                      className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-5`}
+                      animate={{
+                        scale: [1, 1.2, 1],
+                        rotate: [0, 90, 0]
+                      }}
+                      transition={{
+                        duration: 8,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                      }}
+                    />
+                    <div className="relative z-10 text-center">
+                      <motion.div
+                        whileHover={{ scale: 1.2, rotate: 10 }}
+                        className={`inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-to-br ${stat.color} text-white mb-4 shadow-lg`}
+                      >
+                        {stat.icon}
+                      </motion.div>
+                      <div className="text-5xl font-bold mb-2">
+                        <span className="text-gradient">
+                          <AnimatedCounter end={stat.value} suffix="%" duration={2000} />
+                        </span>
+                      </div>
+                      <div className="text-muted-foreground font-medium">{stat.label}</div>
+                    </div>
+                  </AnimatedCard>
+                ))}
+              </motion.div>
 
-              {/* Charts Grid - Only Relevant Charts */}
+              {/* Charts Grid - Enhanced with Animations */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Skill Distribution Pie Chart */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.3 }}
-                  className="bg-background border rounded-2xl p-6"
-                >
-                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <PieChartIcon className="h-5 w-5 text-primary" />
+                <AnimatedCard delay={0.3} glassmorphism={true}>
+                  <h3 className="text-xl font-semibold mb-6 flex items-center gap-3">
+                    <motion.div
+                      whileHover={{ scale: 1.2, rotate: 360 }}
+                      transition={{ duration: 0.6 }}
+                      className="inline-flex items-center justify-center h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 text-white"
+                    >
+                      <PieChartIcon className="h-5 w-5" />
+                    </motion.div>
                     Skill Distribution
                   </h3>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={skillMatchData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      >
-                        {skillMatchData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.4, duration: 0.6 }}
+                  >
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={skillMatchData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          animationBegin={0}
+                          animationDuration={800}
+                        >
+                          {skillMatchData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </motion.div>
+                </AnimatedCard>
 
                 {/* Top Skills Bar Chart */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.4 }}
-                  className="bg-background border rounded-2xl p-6"
-                >
-                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5 text-primary" />
+                <AnimatedCard delay={0.4} glassmorphism={true}>
+                  <h3 className="text-xl font-semibold mb-6 flex items-center gap-3">
+                    <motion.div
+                      whileHover={{ scale: 1.2, rotate: 360 }}
+                      transition={{ duration: 0.6 }}
+                      className="inline-flex items-center justify-center h-10 w-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 text-white"
+                    >
+                      <BarChart3 className="h-5 w-5" />
+                    </motion.div>
                     Top Skills in Resume
                   </h3>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart
-                      data={resumeSkillFreq}
-                      layout="vertical"
-                      margin={{ top: 5, right: 30, left: 60, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" />
-                      <YAxis dataKey="name" type="category" scale="band" />
-                      <Tooltip />
-                      <Bar dataKey="frequency" fill="#3b82f6" name="Frequency" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.5, duration: 0.6 }}
+                  >
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart
+                        data={resumeSkillFreq}
+                        layout="vertical"
+                        margin={{ top: 5, right: 30, left: 60, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" />
+                        <YAxis dataKey="name" type="category" scale="band" />
+                        <Tooltip />
+                        <Bar dataKey="frequency" fill="#3b82f6" name="Frequency" animationDuration={1000} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </motion.div>
+                </AnimatedCard>
 
                 {/* Skill Comparison Chart */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.5 }}
-                  className="bg-background border rounded-2xl p-6 lg:col-span-2"
-                >
-                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <Target className="h-5 w-5 text-primary" />
+                <AnimatedCard delay={0.5} className="lg:col-span-2" glassmorphism={true}>
+                  <h3 className="text-xl font-semibold mb-6 flex items-center gap-3">
+                    <motion.div
+                      whileHover={{ scale: 1.2, rotate: 360 }}
+                      transition={{ duration: 0.6 }}
+                      className="inline-flex items-center justify-center h-10 w-10 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 text-white"
+                    >
+                      <Target className="h-5 w-5" />
+                    </motion.div>
                     Skill Frequency Comparison (Resume vs Job Description)
                   </h3>
-                  <ResponsiveContainer width="100%" height={400}>
-                    <BarChart
-                      data={sortedCombinedData}
-                      margin={{ top: 20, right: 30, left: 60, bottom: 60 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="resume" name="Resume Frequency" fill="#3b82f6" />
-                      <Bar dataKey="job" name="Job Description Frequency" fill="#8b5cf6" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </motion.div>
-
-                {/* Document Comparison Scatter Plot */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.6 }}
-                  className="bg-background border rounded-2xl p-6 lg:col-span-2"
-                >
-                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-primary" />
-                    Document Skill Comparison
-                  </h3>
-                  <ResponsiveContainer width="100%" height={400}>
-                    <BarChart
-                      data={sortedCombinedData}
-                      margin={{ top: 20, right: 30, left: 60, bottom: 60 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="resume" name="Resume Skills" fill="#3b82f6" />
-                      <Bar dataKey="job" name="Job Description Skills" fill="#8b5cf6" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.6, duration: 0.6 }}
+                  >
+                    <ResponsiveContainer width="100%" height={400}>
+                      <BarChart
+                        data={sortedCombinedData}
+                        margin={{ top: 20, right: 30, left: 60, bottom: 60 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="resume" name="Resume Frequency" fill="#3b82f6" animationDuration={1000} />
+                        <Bar dataKey="job" name="Job Description Frequency" fill="#8b5cf6" animationDuration={1000} animationBegin={200} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </motion.div>
+                </AnimatedCard>
               </div>
             </div>
           ) : (

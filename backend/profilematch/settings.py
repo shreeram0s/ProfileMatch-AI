@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
+    # 'channels',  # Uncomment after installing required packages
+    # 'graphene_django',  # Uncomment after installing required packages
     'analyzer',
 ]
 
@@ -75,6 +77,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'profilematch.wsgi.application'
+ASGI_APPLICATION = 'profilematch.asgi.application'
 
 
 # Database
@@ -138,6 +141,13 @@ os.makedirs(STATIC_ROOT, exist_ok=True)
 # Enable WhiteNoise compression and caching
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
+# Media files (User uploaded files)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Create media directory if it doesn't exist
+os.makedirs(MEDIA_ROOT, exist_ok=True)
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
@@ -151,14 +161,14 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5179",
     "http://localhost:5180",
     "http://localhost:5181",
-    "http://localhost:5182",  # Add this line for the new frontend port
+    "http://localhost:5182",
     "http://127.0.0.1:5176",
     "http://127.0.0.1:5177",
     "http://127.0.0.1:5178",
     "http://127.0.0.1:5179",
     "http://127.0.0.1:5180",
     "http://127.0.0.1:5181",
-    "http://127.0.0.1:5182",  # Add this line for the new frontend port
+    "http://127.0.0.1:5182",
     "https://profilematch-frontend.onrender.com",
     "https://projektafrontend.onrender.com"
 ]
@@ -193,3 +203,54 @@ REST_FRAMEWORK = {
 ADZUNA_APP_ID = config('ADZUNA_APP_ID', default='962974fe')
 ADZUNA_APP_KEY = config('ADZUNA_APP_KEY', default='cb18422dd62921861ad8d4b423942105')
 YOUTUBE_API_KEY = config('YOUTUBE_API_KEY', default='AIzaSyCC8YoN1GeLvQXYbOei_ykpoQZELHyD6HY')
+
+# Redis Configuration
+REDIS_HOST = config('REDIS_HOST', default='localhost')
+REDIS_PORT = config('REDIS_PORT', default=6379, cast=int)
+REDIS_URL = f'redis://{REDIS_HOST}:{REDIS_PORT}'
+
+# Cache Configuration (Uncomment after installing django-redis)
+# CACHES = {
+#     'default': {
+#         'BACKEND': 'django_redis.cache.RedisCache',
+#         'LOCATION': REDIS_URL,
+#         'OPTIONS': {
+#             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+#             'SOCKET_CONNECT_TIMEOUT': 5,
+#             'SOCKET_TIMEOUT': 5,
+#             'IGNORE_EXCEPTIONS': True,
+#         },
+#         'KEY_PREFIX': 'profilematch',
+#         'TIMEOUT': 300,
+#     }
+# }
+
+# Celery Configuration
+CELERY_BROKER_URL = REDIS_URL
+CELERY_RESULT_BACKEND = REDIS_URL
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
+
+# Channels Configuration (Uncomment after installing channels-redis)
+# CHANNEL_LAYERS = {
+#     'default': {
+#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
+#         'CONFIG': {
+#             'hosts': [(REDIS_HOST, REDIS_PORT)],
+#             'capacity': 1500,
+#             'expiry': 10,
+#         },
+#     },
+# }
+
+# GraphQL Configuration
+GRAPHENE = {
+    'SCHEMA': 'profilematch.schema.schema',
+    'MIDDLEWARE': [
+        'graphene_django.debug.DjangoDebugMiddleware',
+    ],
+}

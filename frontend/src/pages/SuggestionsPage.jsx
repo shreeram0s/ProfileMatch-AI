@@ -10,6 +10,7 @@ import {
   Download
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import EnhancedYouTubeCard from '../components/EnhancedYouTubeCard';
 
 const SuggestionsPage = () => {
   const [analysisData, setAnalysisData] = useState(null);
@@ -23,15 +24,20 @@ const SuggestionsPage = () => {
     if (lastAnalysis) {
       try {
         const parsedAnalysis = JSON.parse(lastAnalysis);
+        console.log('📊 Analysis Data:', parsedAnalysis);
+        console.log('🎥 YouTube Recommendations:', parsedAnalysis.youtube_recommendations);
         setAnalysisData(parsedAnalysis);
       } catch (e) {
         console.error('Error parsing last analysis:', e);
       }
+    } else {
+      console.log('⚠️ No analysis data found in localStorage');
     }
     
     if (storedMissingSkills) {
       try {
         const parsedSkills = JSON.parse(storedMissingSkills);
+        console.log('🔍 Missing Skills:', parsedSkills);
         setMissingSkills(parsedSkills);
       } catch (e) {
         console.error('Error parsing missing skills:', e);
@@ -114,69 +120,62 @@ const SuggestionsPage = () => {
         </div>
       </section>
 
-      {/* Learning Resources Section */}
-      <section className="container mx-auto px-4 sm:px-6 py-16">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 flex items-center justify-center gap-3">
-              <GraduationCap className="h-8 w-8 text-primary" />
+      {/* Learning Resources Section - YouTube Style */}
+      <section className="w-full px-4 sm:px-6 lg:px-8 py-16 bg-background">
+        <div className="max-w-[1800px] mx-auto">
+          <div className="mb-8">
+            <h2 className="text-3xl md:text-4xl font-bold mb-2 flex items-center gap-3">
+              <Youtube className="h-8 w-8 text-red-600" />
               Learning Resources
             </h2>
             <p className="text-muted-foreground text-lg">
-              Personalized tutorials to help you develop missing skills
+              Personalized video tutorials to help you develop missing skills
             </p>
           </div>
           
           {analysisData && analysisData.youtube_recommendations && 
            Object.keys(analysisData.youtube_recommendations).length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-10">
               {Object.entries(analysisData.youtube_recommendations).map(([skill, videos], skillIndex) => (
-                <motion.div
-                  key={skillIndex}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: skillIndex * 0.1 }}
-                  className="bg-background border rounded-2xl p-6"
-                >
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="bg-primary/10 p-2 rounded-lg">
-                      <BookOpen className="h-5 w-5 text-primary" />
+                videos && videos.length > 0 && (
+                  <motion.div
+                    key={skillIndex}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: skillIndex * 0.1 }}
+                    className="space-y-4"
+                  >
+                    {/* Skill Header - YouTube Style */}
+                    <div className="flex items-center gap-3 pb-3 border-b-2 border-border">
+                      <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-2.5 rounded-xl">
+                        <BookOpen className="h-5 w-5 text-white" />
+                      </div>
+                      <h3 className="text-2xl md:text-3xl font-bold capitalize">{skill}</h3>
+                      <span className="ml-auto text-sm text-muted-foreground bg-muted px-3 py-1 rounded-full">
+                        {videos.length} {videos.length === 1 ? 'video' : 'videos'}
+                      </span>
                     </div>
-                    <h3 className="text-xl font-semibold">{skill}</h3>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    {videos.map((video, videoIndex) => (
-                      <a
-                        key={videoIndex}
-                        href={video.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted transition-colors group"
-                      >
-                        <img
-                          src={video.thumbnail}
-                          alt={video.title}
-                          className="w-24 h-16 object-cover rounded"
-                        />
-                        <div className="flex-grow">
-                          <h4 className="font-medium text-sm group-hover:text-primary transition-colors line-clamp-2">
-                            {video.title}
-                          </h4>
-                          <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                            <ExternalLink className="h-3 w-3" />
-                            <span>Watch on YouTube</span>
-                          </div>
-                        </div>
-                      </a>
-                    ))}
-                  </div>
-                </motion.div>
+                    
+                    {/* YouTube-style Video Grid - Responsive */}
+                    <div className="flex justify-center">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 lg:gap-5 w-full">
+                        {videos.map((video, videoIndex) => (
+                          <EnhancedYouTubeCard 
+                            key={videoIndex}
+                            video={video}
+                            skill={skill}
+                            index={videoIndex}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                )
               ))}
             </div>
           ) : (
-            <div className="text-center py-12">
-              <GraduationCap className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <div className="text-center py-20">
+              <Youtube className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-xl font-semibold mb-2">No Learning Resources Available</h3>
               <p className="text-muted-foreground">
                 Please complete an analysis to receive personalized learning recommendations.

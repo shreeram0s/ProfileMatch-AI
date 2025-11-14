@@ -60,6 +60,7 @@ htmlcov/
 *.md
 !README.md
 
-# Resume files (sample data)
+# Resume files (sample/test data - don't include in production)
 resumes/
+media/resumes/
 

@@ -8,7 +8,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 import json
 from .models import Resume, Analysis
-from .ml_analysis import ResumeAnalyzer, TextExtractor, calculate_similarity
+from .ml_analysis import ResumeAnalyzer, TextExtractor
 from .job_fetcher import fetch_jobs_from_adzuna
 from django.conf import settings
 
@@ -99,6 +99,8 @@ def fetch_jobs_from_adzuna(skills):
         app_key = settings.ADZUNA_APP_KEY
         country = 'in'  # India
         
+        print(f"Fetching jobs with APP_ID: {app_id[:4]}... and skills: {skills}")
+        
         # Try to fetch jobs based on specific skills first
         jobs = []
         
@@ -115,115 +117,141 @@ def fetch_jobs_from_adzuna(skills):
                     'content-type': 'application/json'
                 }
                 
+                print(f"Searching for jobs with skill: {skill}")
+                
                 try:
-                    response = requests.get(url, params=params)
+                    response = requests.get(url, params=params, timeout=10)
+                    print(f"Response status for {skill}: {response.status_code}")
+                    
                     if response.status_code == 200:
                         data = response.json()
+                        print(f"Found {len(data.get('results', []))} jobs for {skill}")
+                        
                         for result in data.get('results', []):
                             job = {
                                 'title': result.get('title', ''),
-                                'company': result.get('company', {}).get('display_name', ''),
-                                'location': result.get('location', {}).get('display_name', ''),
+                                'company': result.get('company', {}).get('display_name', 'Unknown Company'),
+                                'location': result.get('location', {}).get('display_name', 'India'),
                                 'salary': '',
                                 'apply_link': result.get('redirect_url', ''),
                             }
                             
                             # Format salary if available
-                            salary_obj = result.get('salary_min')
-                            if salary_obj:
-                                job['salary'] = f"₹{salary_obj:,}"
+                            salary_min = result.get('salary_min')
+                            salary_max = result.get('salary_max')
+                            if salary_min and salary_max:
+                                job['salary'] = f"₹{salary_min:,.0f} - ₹{salary_max:,.0f}"
+                            elif salary_min:
+                                job['salary'] = f"₹{salary_min:,.0f}+"
                             
                             # Avoid duplicates
-                            if job not in jobs:
+                            if job not in jobs and job['title']:
                                 jobs.append(job)
                                 
                             # Limit total jobs
-                            if len(jobs) >= 10:
+                            if len(jobs) >= 15:
                                 break
+                    else:
+                        print(f"Error response: {response.text[:200]}")
                 
+                except requests.Timeout:
+                    print(f"Timeout fetching jobs for skill {skill}")
                 except Exception as e:
                     print(f"Error fetching jobs for skill {skill}: {e}")
                 
-                if len(jobs) >= 10:
+                if len(jobs) >= 15:
                     break
             
             # If we still don't have enough jobs, try a combined query
-            if len(jobs) < 10 and len(skills) > 1:
+            if len(jobs) < 15 and len(skills) > 1:
                 # Join skills for a broader query
                 query = ' '.join(skills[:5])  # Limit to first 5 skills
                 url = f'https://api.adzuna.com/v1/api/jobs/{country}/search/1'
                 params = {
                     'app_id': app_id,
                     'app_key': app_key,
-                    'results_per_page': 10 - len(jobs),
+                    'results_per_page': 15 - len(jobs),
                     'what': query,
                     'content-type': 'application/json'
                 }
                 
+                print(f"Trying combined query with: {query}")
+                
                 try:
-                    response = requests.get(url, params=params)
+                    response = requests.get(url, params=params, timeout=10)
                     if response.status_code == 200:
                         data = response.json()
                         for result in data.get('results', []):
                             job = {
                                 'title': result.get('title', ''),
-                                'company': result.get('company', {}).get('display_name', ''),
-                                'location': result.get('location', {}).get('display_name', ''),
+                                'company': result.get('company', {}).get('display_name', 'Unknown Company'),
+                                'location': result.get('location', {}).get('display_name', 'India'),
                                 'salary': '',
                                 'apply_link': result.get('redirect_url', ''),
                             }
                             
                             # Format salary if available
-                            salary_obj = result.get('salary_min')
-                            if salary_obj:
-                                job['salary'] = f"₹{salary_obj:,}"
+                            salary_min = result.get('salary_min')
+                            salary_max = result.get('salary_max')
+                            if salary_min and salary_max:
+                                job['salary'] = f"₹{salary_min:,.0f} - ₹{salary_max:,.0f}"
+                            elif salary_min:
+                                job['salary'] = f"₹{salary_min:,.0f}+"
                             
                             # Avoid duplicates
-                            if job not in jobs:
+                            if job not in jobs and job['title']:
                                 jobs.append(job)
                                 
                             # Limit total jobs
-                            if len(jobs) >= 10:
+                            if len(jobs) >= 15:
                                 break
                 except Exception as e:
                     print(f"Error fetching jobs for combined query: {e}")
         
         # If we still don't have jobs, fetch some general tech jobs
         if len(jobs) == 0:
+            print("No jobs found with skills, trying general technology search...")
             url = f'https://api.adzuna.com/v1/api/jobs/{country}/search/1'
             params = {
                 'app_id': app_id,
                 'app_key': app_key,
-                'results_per_page': 10,
-                'what': 'technology',
+                'results_per_page': 15,
+                'what': 'software developer',
                 'content-type': 'application/json'
             }
             
             try:
-                response = requests.get(url, params=params)
+                response = requests.get(url, params=params, timeout=10)
                 if response.status_code == 200:
                     data = response.json()
                     for result in data.get('results', []):
                         job = {
                             'title': result.get('title', ''),
-                            'company': result.get('company', {}).get('display_name', ''),
-                            'location': result.get('location', {}).get('display_name', ''),
+                            'company': result.get('company', {}).get('display_name', 'Unknown Company'),
+                            'location': result.get('location', {}).get('display_name', 'India'),
                             'salary': '',
                             'apply_link': result.get('redirect_url', ''),
                         }
                         
                         # Format salary if available
-                        salary_obj = result.get('salary_min')
-                        if salary_obj:
-                            job['salary'] = f"₹{salary_obj:,}"
+                        salary_min = result.get('salary_min')
+                        salary_max = result.get('salary_max')
+                        if salary_min and salary_max:
+                            job['salary'] = f"₹{salary_min:,.0f} - ₹{salary_max:,.0f}"
+                        elif salary_min:
+                            job['salary'] = f"₹{salary_min:,.0f}+"
                         
-                        jobs.append(job)
+                        if job['title']:
+                            jobs.append(job)
             except Exception as e:
                 print(f"Error fetching general tech jobs: {e}")
         
+        print(f"Total jobs found: {len(jobs)}")
         return jobs
     except Exception as e:
         print(f"Error fetching jobs: {e}")
+        import traceback
+        traceback.print_exc()
     
     return []
 
@@ -406,159 +434,394 @@ class InterviewKitView(View):
             behavioral_questions = []
             situational_questions = []
             
-            # Sample questions with answers (in a real app, these would come from a database)
-            tech_templates = [
+            # Enhanced skill-specific technical questions
+            skill_specific_questions = {
+                'python': [
+                    {
+                        "question": "Explain the difference between list, tuple, and set in Python. When would you use each?",
+                        "difficulty": "Medium",
+                        "answers": [
+                            "Lists are mutable ordered collections with duplicate values. Tuples are immutable ordered collections, useful for fixed data. Sets are unordered collections with unique values, ideal for membership testing and removing duplicates.",
+                            "Use lists when you need a modifiable sequence, tuples for data that shouldn't change (like coordinates), and sets when you need to ensure uniqueness or perform fast membership checks."
+                        ]
+                    },
+                    {
+                        "question": "What are Python decorators and how do they work? Provide a practical example.",
+                        "difficulty": "Hard",
+                        "answers": [
+                            "Decorators are functions that modify the behavior of other functions. They use the @syntax and wrap functions to add functionality. Example: @login_required adds authentication checks before executing a view function.",
+                            "A decorator takes a function as input and returns a modified version. For instance, a @timing decorator can measure execution time by wrapping the original function in timing code."
+                        ]
+                    },
+                    {
+                        "question": "How does Python's garbage collection work? What is reference counting?",
+                        "difficulty": "Medium",
+                        "answers": [
+                            "Python uses automatic garbage collection with reference counting and a cyclic garbage collector. When an object's reference count reaches zero, it's deallocated. The cyclic collector handles circular references.",
+                            "Reference counting tracks how many references point to an object. Python's gc module handles circular references that reference counting alone can't clean up."
+                        ]
+                    }
+                ],
+                'javascript': [
+                    {
+                        "question": "Explain the difference between var, let, and const in JavaScript.",
+                        "difficulty": "Easy",
+                        "answers": [
+                            "var is function-scoped and can be re-declared. let is block-scoped and can be reassigned but not re-declared. const is block-scoped and cannot be reassigned or re-declared.",
+                            "Use const for values that won't change, let for variables that will be reassigned, and avoid var in modern JavaScript due to its confusing scoping rules."
+                        ]
+                    },
+                    {
+                        "question": "What is the event loop in JavaScript? How does async/await work?",
+                        "difficulty": "Hard",
+                        "answers": [
+                            "The event loop processes the call stack and callback queue. Async/await is syntactic sugar over Promises, making asynchronous code look synchronous. Await pauses execution until a Promise resolves.",
+                            "JavaScript is single-threaded but handles async operations through the event loop. Async functions return Promises, and await suspends execution until the awaited Promise settles."
+                        ]
+                    },
+                    {
+                        "question": "Explain closures in JavaScript with a practical use case.",
+                        "difficulty": "Medium",
+                        "answers": [
+                            "A closure is when a function retains access to variables from its outer scope even after the outer function has returned. Useful for data privacy, factory functions, and event handlers.",
+                            "Closures enable private variables in JavaScript. For example, a counter function can keep count private while exposing increment/decrement methods through returned functions."
+                        ]
+                    }
+                ],
+                'react': [
+                    {
+                        "question": "Explain the difference between state and props in React. When should you use each?",
+                        "difficulty": "Easy",
+                        "answers": [
+                            "Props are read-only data passed from parent to child components. State is mutable data managed within a component. Use props for component configuration, state for data that changes over time.",
+                            "Props flow down the component tree and cannot be modified by the receiving component. State is local to a component and triggers re-renders when updated using setState or useState."
+                        ]
+                    },
+                    {
+                        "question": "What are React hooks? Explain useState and useEffect with examples.",
+                        "difficulty": "Medium",
+                        "answers": [
+                            "Hooks let you use state and lifecycle features in functional components. useState manages component state, useEffect handles side effects like API calls and subscriptions. They replace class lifecycle methods.",
+                            "useState returns current state and updater function: const [count, setCount] = useState(0). useEffect runs after render: useEffect(() => { fetchData() }, [dependencies])."
+                        ]
+                    },
+                    {
+                        "question": "How does React's Virtual DOM work and why is it beneficial?",
+                        "difficulty": "Medium",
+                        "answers": [
+                            "Virtual DOM is an in-memory representation of real DOM. React compares current and previous virtual DOM (reconciliation), calculates minimal changes needed, and efficiently updates only changed real DOM elements.",
+                            "Instead of updating the entire real DOM, React creates a virtual copy, diffs changes, and batches updates. This minimizes expensive DOM manipulations and improves performance."
+                        ]
+                    }
+                ],
+                'java': [
+                    {
+                        "question": "Explain the principles of Object-Oriented Programming in Java.",
+                        "difficulty": "Easy",
+                        "answers": [
+                            "OOP has four pillars: Encapsulation (data hiding), Inheritance (code reuse), Polymorphism (multiple forms), and Abstraction (hiding complexity). Java implements these through classes, interfaces, and access modifiers.",
+                            "Encapsulation bundles data with methods. Inheritance allows classes to extend others. Polymorphism enables method overriding. Abstraction uses interfaces and abstract classes to define contracts."
+                        ]
+                    },
+                    {
+                        "question": "What is the difference between HashMap and ConcurrentHashMap in Java?",
+                        "difficulty": "Hard",
+                        "answers": [
+                            "HashMap is not thread-safe and can cause ConcurrentModificationException. ConcurrentHashMap uses lock striping for thread-safe operations without locking the entire map, providing better concurrency.",
+                            "Use HashMap for single-threaded applications. ConcurrentHashMap allows multiple threads to read/write safely by dividing the map into segments, each with its own lock."
+                        ]
+                    },
+                    {
+                        "question": "Explain Java's garbage collection and different GC algorithms.",
+                        "difficulty": "Hard",
+                        "answers": [
+                            "Java uses automatic memory management. GC algorithms include Serial GC (single-threaded), Parallel GC (multiple threads), CMS (low-pause), and G1 GC (predictable pause times for large heaps).",
+                            "GC works in generations: Young Generation (Eden, Survivor spaces) for new objects, Old Generation for long-lived objects. Different collectors optimize for throughput or low latency."
+                        ]
+                    }
+                ],
+                'sql': [
+                    {
+                        "question": "Explain the difference between INNER JOIN, LEFT JOIN, and RIGHT JOIN with examples.",
+                        "difficulty": "Medium",
+                        "answers": [
+                            "INNER JOIN returns matching rows from both tables. LEFT JOIN returns all rows from left table and matching rows from right (NULL if no match). RIGHT JOIN is opposite of LEFT JOIN.",
+                            "INNER JOIN: SELECT * FROM A INNER JOIN B ON A.id=B.id gets only matches. LEFT JOIN includes all A records even without B matches. Use based on which table's data must be complete."
+                        ]
+                    },
+                    {
+                        "question": "What are database indexes? When should you use them and what are the trade-offs?",
+                        "difficulty": "Medium",
+                        "answers": [
+                            "Indexes are data structures that improve query performance by creating quick lookup tables. Use on frequently queried columns. Trade-offs: faster reads but slower writes, additional storage space.",
+                            "Indexes work like book indexes - pointing to data locations. Create on WHERE, JOIN, ORDER BY columns. Over-indexing slows INSERT/UPDATE/DELETE operations and wastes space."
+                        ]
+                    },
+                    {
+                        "question": "Explain database normalization. What are the different normal forms?",
+                        "difficulty": "Hard",
+                        "answers": [
+                            "Normalization eliminates redundancy. 1NF: atomic values. 2NF: no partial dependencies. 3NF: no transitive dependencies. BCNF: every determinant is a candidate key. Reduces anomalies, improves integrity.",
+                            "1NF removes repeating groups. 2NF ensures non-key attributes depend on entire primary key. 3NF removes dependencies on non-key attributes. Higher forms reduce duplication but may require more joins."
+                        ]
+                    }
+                ],
+                'node.js': [
+                    {
+                        "question": "How does Node.js handle asynchronous operations? Explain the event-driven architecture.",
+                        "difficulty": "Medium",
+                        "answers": [
+                            "Node.js uses a single-threaded event loop with non-blocking I/O. Async operations are delegated to the system kernel or thread pool. When complete, callbacks are queued for execution.",
+                            "Event-driven architecture processes events asynchronously. The event loop checks for pending callbacks, executes them, and continues. This enables high concurrency without multiple threads."
+                        ]
+                    },
+                    {
+                        "question": "What is middleware in Express.js? Provide examples of common use cases.",
+                        "difficulty": "Easy",
+                        "answers": [
+                            "Middleware functions access request/response objects and next(). Common uses: logging (Morgan), parsing (body-parser), authentication (passport), error handling, CORS.",
+                            "Middleware executes in sequence. app.use(express.json()) parses JSON bodies. Custom middleware: app.use((req, res, next) => { console.log(req.method); next(); }). Order matters!"
+                        ]
+                    }
+                ],
+                'django': [
+                    {
+                        "question": "Explain Django's MVT architecture and how it differs from MVC.",
+                        "difficulty": "Medium",
+                        "answers": [
+                            "MVT: Model (data), View (logic), Template (presentation). Unlike MVC, Django's View handles logic while Template handles presentation. Django's framework acts as the Controller.",
+                            "Models define database structure. Views process requests and return responses. Templates render HTML. URL dispatcher routes requests to views. Django ORM abstracts database operations."
+                        ]
+                    },
+                    {
+                        "question": "What are Django signals and when would you use them?",
+                        "difficulty": "Hard",
+                        "answers": [
+                            "Signals allow decoupled apps to get notified when actions occur. Common signals: pre_save, post_save, pre_delete. Use for actions like sending emails, cache invalidation, logging.",
+                            "Signals provide a way to execute code when certain events happen. Example: post_save signal on User model can create a related Profile automatically. Useful for cross-cutting concerns."
+                        ]
+                    }
+                ],
+                'docker': [
+                    {
+                        "question": "Explain the difference between Docker images and containers.",
+                        "difficulty": "Easy",
+                        "answers": [
+                            "Images are read-only templates with application code and dependencies. Containers are running instances of images with their own filesystem, isolated from the host.",
+                            "Think of images as classes and containers as objects. Images are built from Dockerfiles. Containers are created from images using 'docker run' and have a writable layer on top."
+                        ]
+                    },
+                    {
+                        "question": "What is Docker Compose and when would you use it?",
+                        "difficulty": "Medium",
+                        "answers": [
+                            "Docker Compose orchestrates multi-container applications using YAML files. Define services, networks, volumes in docker-compose.yml. One command starts the entire application stack.",
+                            "Use for local development with multiple services (app, database, redis). docker-compose up starts all containers. Benefits: consistent environments, easy service linking, simplified networking."
+                        ]
+                    }
+                ],
+                'aws': [
+                    {
+                        "question": "Explain the difference between EC2, Lambda, and ECS.",
+                        "difficulty": "Medium",
+                        "answers": [
+                            "EC2: virtual servers you manage. Lambda: serverless functions with auto-scaling. ECS: container orchestration service. Choose based on workload: persistent apps (EC2), event-driven (Lambda), containerized (ECS).",
+                            "EC2 gives full control over instances. Lambda charges per execution, no server management. ECS runs Docker containers at scale. Lambda for short tasks, EC2 for traditional apps, ECS for microservices."
+                        ]
+                    },
+                    {
+                        "question": "What is the difference between S3 and EBS?",
+                        "difficulty": "Easy",
+                        "answers": [
+                            "S3 is object storage for files (images, videos, backups) accessed via HTTP. EBS is block storage attached to EC2 instances like a hard drive. S3 is cheaper for large static files.",
+                            "Use S3 for static content, backups, data lakes. Use EBS for database files, application data requiring low latency. S3 is replicated across regions automatically, EBS is single AZ."
+                        ]
+                    }
+                ]
+            }
+            
+            # General technical question templates for skills without specific questions
+            general_tech_templates = [
                 {
-                    "question": "Explain the concept of {skill}.",
+                    "question": "What are the key features and advantages of {skill}?",
+                    "difficulty": "Easy",
                     "answers": [
-                        "{skill} is a technology that allows developers to build applications efficiently. It provides a framework for organizing code and managing dependencies.",
-                        "At its core, {skill} is designed to solve specific problems in software development. It offers features like modularity, reusability, and scalability."
+                        "{skill} provides powerful features for modern development including scalability, maintainability, and developer productivity. Its ecosystem includes extensive libraries and strong community support.",
+                        "The main advantages of {skill} are its performance, ease of use, and wide industry adoption. It solves common development challenges efficiently with proven patterns."
                     ]
                 },
                 {
-                    "question": "What are the advantages and disadvantages of using {skill}?",
+                    "question": "Describe a real-world project where you used {skill}. What challenges did you face?",
+                    "difficulty": "Medium",
                     "answers": [
-                        "Advantages include ease of use, strong community support, and extensive documentation. Disadvantages might be performance limitations or learning curve.",
-                        "The pros of {skill} are its flexibility and wide adoption. The cons could include complexity in large applications or compatibility issues."
+                        "I built an e-commerce platform using {skill} where the main challenge was handling high traffic during sales. I implemented caching, optimized queries, and used load balancing to ensure smooth performance.",
+                        "In a data processing pipeline with {skill}, I faced scalability issues. I refactored the architecture to use asynchronous processing and batch operations, improving throughput by 3x."
                     ]
                 },
                 {
-                    "question": "How would you implement a solution using {skill}?",
+                    "question": "How do you ensure code quality and follow best practices when working with {skill}?",
+                    "difficulty": "Medium",
                     "answers": [
-                        "First, I would analyze the requirements and design the architecture. Then, I'd set up the development environment and start with core components.",
-                        "I'd begin by breaking down the problem into smaller tasks, then use {skill}'s features to implement each component, followed by testing and optimization."
+                        "I write comprehensive unit tests, follow coding standards, conduct code reviews, and use linters/formatters. I also document code thoroughly and refactor regularly to maintain clean architecture.",
+                        "Best practices include modular design, error handling, security considerations, and performance optimization. I use CI/CD pipelines for automated testing and maintain up-to-date dependencies."
                     ]
                 },
                 {
-                    "question": "Describe a challenging problem you solved using {skill}.",
+                    "question": "What are common performance bottlenecks in {skill} applications and how do you optimize them?",
+                    "difficulty": "Hard",
                     "answers": [
-                        "I once had to optimize a slow-performing module. I used {skill}'s profiling tools to identify bottlenecks and refactored the code for better efficiency.",
-                        "In a previous project, I faced integration issues with legacy systems. I leveraged {skill}'s compatibility features to bridge the gap successfully."
+                        "Common bottlenecks include inefficient algorithms, database queries, memory leaks, and blocking I/O. I profile applications, optimize critical paths, implement caching, and use async operations where appropriate.",
+                        "I identify bottlenecks through monitoring and profiling tools. Solutions include query optimization, connection pooling, caching strategies, CDN usage, and horizontal scaling."
                     ]
                 },
                 {
-                    "question": "What are the best practices for {skill}?",
+                    "question": "How do you stay updated with the latest developments and best practices in {skill}?",
+                    "difficulty": "Easy",
                     "answers": [
-                        "Following coding standards, writing unit tests, and keeping dependencies up-to-date are essential. Documentation and code reviews are also important.",
-                        "Modular design, error handling, and performance optimization should be priorities. Regular updates and security checks are also recommended."
+                        "I follow official blogs, read documentation updates, participate in community forums, and attend conferences/webinars. I also experiment with new features in side projects.",
+                        "I subscribe to newsletters, follow thought leaders on social media, contribute to open-source projects, and take online courses to continuously learn and apply new techniques."
                     ]
                 }
             ]
             
+            # Enhanced behavioral question templates
             behavioral_templates = [
                 {
-                    "question": "Tell me about a time you had to learn {skill} quickly.",
+                    "question": "Describe a situation where you had to learn {skill} under a tight deadline. How did you approach it?",
+                    "difficulty": "Medium",
                     "answers": [
-                        "When my team decided to adopt {skill} for a new project, I dedicated 2 hours daily to learning through documentation and tutorials. Within a month, I was contributing effectively.",
-                        "I had to pick up {skill} for a tight deadline project. I focused on core concepts first, then practiced with small examples before applying it to the actual work."
+                        "When assigned a project requiring {skill} with a 3-week deadline, I created a focused learning plan. I studied official documentation for 2 hours daily, built small prototypes, and asked for code reviews from experienced team members. I successfully delivered on time.",
+                        "I prioritized learning the core concepts needed for immediate tasks while building a working prototype. I set up pair programming sessions with a colleague experienced in {skill} and completed online tutorials during evenings. This hands-on approach accelerated my learning."
                     ]
                 },
                 {
-                    "question": "Describe a situation where your knowledge of {skill} helped your team.",
+                    "question": "Tell me about a time when your expertise in {skill} helped solve a critical production issue.",
+                    "difficulty": "Hard",
                     "answers": [
-                        "During a critical bug fix, my understanding of {skill}'s internals helped identify the root cause quickly, saving the team several hours of debugging.",
-                        "I mentored junior developers on {skill}, which improved the overall team productivity and code quality for our project."
+                        "Our production system experienced 80% performance degradation. Using my knowledge of {skill}'s internals, I quickly identified a memory leak in our caching layer. I implemented a fix and deployed within 2 hours, preventing revenue loss.",
+                        "A critical bug in our {skill}-based service was causing data inconsistency. I analyzed logs, reproduced the issue locally, and discovered a race condition. My fix included proper synchronization and comprehensive testing to prevent recurrence."
                     ]
                 },
                 {
-                    "question": "How do you stay updated with the latest developments in {skill}?",
+                    "question": "Describe how you mentored a junior developer in learning {skill}.",
+                    "difficulty": "Medium",
                     "answers": [
-                        "I follow official blogs, join community forums, and attend webinars related to {skill}. I also experiment with new features in personal projects.",
-                        "I subscribe to newsletters, participate in online communities, and contribute to open-source projects involving {skill} to stay current."
+                        "I created a structured learning path starting with fundamentals, provided hands-on exercises, and conducted weekly code review sessions. I paired with them on real tasks, explained my thought process, and encouraged questions. After 3 months, they were contributing independently.",
+                        "I assessed their current knowledge level, identified gaps, and assigned progressively complex tasks. I shared resources, explained best practices during code reviews, and made myself available for questions. Their confidence and code quality improved significantly."
                     ]
                 },
                 {
-                    "question": "Tell me about a time you had to debug a complex issue in {skill}.",
+                    "question": "Tell me about a disagreement you had with a team member regarding a {skill}-related technical decision.",
+                    "difficulty": "Medium",
                     "answers": [
-                        "I encountered a memory leak issue in a {skill} application. I used profiling tools to trace the problem to improper resource management and fixed it by implementing proper cleanup.",
-                        "A performance issue in our {skill}-based system was traced to inefficient database queries. I optimized them and improved response times by 60%."
+                        "We disagreed on whether to use approach A or B for implementing a feature in {skill}. I proposed we prototype both approaches with clear success criteria. We evaluated performance, maintainability, and complexity. The data-driven discussion led to consensus on the better solution.",
+                        "A colleague wanted to use a different {skill} pattern than I suggested. Instead of arguing, I documented pros and cons of each approach, consulted with senior developers, and we agreed to use my approach for this project while keeping the other option for future consideration."
                     ]
                 },
                 {
-                    "question": "Describe how you would mentor someone new to {skill}.",
+                    "question": "Describe a time when you had to refactor a large codebase using {skill} while maintaining backward compatibility.",
+                    "difficulty": "Hard",
                     "answers": [
-                        "I would start with fundamentals, provide hands-on exercises, and gradually introduce advanced concepts. Regular code reviews and feedback sessions would ensure progress.",
-                        "My approach would be to understand their background, create a learning path, and provide practical examples. I'd encourage questions and offer continuous support."
+                        "I led a 3-month refactoring effort of our {skill} application. I created a detailed plan, broke work into small incremental changes, maintained comprehensive test coverage, and used feature flags. We successfully migrated without downtime or breaking changes.",
+                        "I identified the most problematic areas, wrote characterization tests, refactored in small steps, and got frequent code reviews. I created wrapper functions to maintain the old API while implementing new logic underneath. Gradual migration ensured stability."
                     ]
                 }
             ]
             
+            # Enhanced situational question templates
             situational_templates = [
                 {
-                    "question": "How would you handle a situation where your {skill} solution didn't work as expected?",
+                    "question": "You discover a security vulnerability in your {skill} application two days before a major release. What would you do?",
+                    "difficulty": "Hard",
                     "answers": [
-                        "I would first analyze the error logs and documentation to understand the issue. Then, I'd explore alternative approaches or seek help from the community if needed.",
-                        "I'd systematically troubleshoot by isolating the problem, testing assumptions, and consulting resources. If necessary, I'd consider different technologies."
+                        "I would immediately assess the severity and scope of the vulnerability. If critical, I'd recommend delaying the release, inform stakeholders with a risk assessment, develop and test a fix, and implement it. Security cannot be compromised for deadlines.",
+                        "I'd quantify the risk, explore if a workaround exists, and present options to stakeholders: delay release, limited rollout, or temporary mitigation. I'd document the issue, fix it properly, and add security tests to prevent similar issues."
                     ]
                 },
                 {
-                    "question": "If you had to choose between two {skill} approaches, how would you decide?",
+                    "question": "Your team wants to migrate from an existing solution to {skill}, but you have concerns about the transition. How would you handle this?",
+                    "difficulty": "Medium",
                     "answers": [
-                        "I'd evaluate factors like project requirements, team expertise, maintenance costs, and scalability. I'd also consider community support and long-term viability.",
-                        "I'd create a proof of concept for each approach, compare performance and complexity, and consult with team members before making a decision."
+                        "I'd voice my concerns with specific data points: migration effort, learning curve, compatibility issues. I'd propose a proof of concept to validate assumptions, create a risk matrix, and suggest a phased migration plan if we proceed.",
+                        "I'd research and document both benefits and challenges, compare with current solution objectively, suggest running {skill} for a non-critical component first, and gather metrics before full migration. Evidence-based decisions reduce risk."
                     ]
                 },
                 {
-                    "question": "How would you explain {skill} to a non-technical stakeholder?",
+                    "question": "You're assigned to work on a {skill} project, but the codebase has no documentation and the original developer has left. How would you proceed?",
+                    "difficulty": "Medium",
                     "answers": [
-                        "I'd use analogies and real-world examples to explain how {skill} solves business problems. I'd focus on benefits rather than technical details.",
-                        "I'd relate {skill} to familiar concepts and emphasize its impact on project outcomes, like faster delivery or improved user experience."
+                        "I'd start by reading the code to understand architecture, run the application locally, trace execution flow for key features, write tests for critical paths, and document as I learn. I'd also check version control history for context.",
+                        "I'd analyze the project structure, identify entry points, use debugging tools to trace logic, create architecture diagrams, and write documentation while adding features. This helps future developers and builds my understanding."
                     ]
                 },
                 {
-                    "question": "What would you do if a team member was struggling with {skill}?",
+                    "question": "How would you convince management to invest in upgrading the {skill} version or refactoring technical debt?",
+                    "difficulty": "Hard",
                     "answers": [
-                        "I'd offer one-on-one mentoring, share learning resources, and pair program with them on tasks involving {skill} to build their confidence.",
-                        "I'd assess their specific challenges, provide targeted guidance, and suggest breaking down complex tasks into manageable steps."
+                        "I'd quantify the business impact: reduced development velocity, increased bug rates, security risks, and maintenance costs. I'd present a cost-benefit analysis showing how investment now saves money long-term and enables faster feature development.",
+                        "I'd create a presentation with concrete examples of how technical debt slows features, increases bugs, and poses security risks. I'd propose a phased approach with measurable milestones and demonstrate ROI through improved team productivity."
                     ]
                 },
                 {
-                    "question": "How would you optimize a {skill}-based system for better performance?",
+                    "question": "A critical {skill} service is experiencing intermittent failures in production. How would you debug and resolve this?",
+                    "difficulty": "Hard",
                     "answers": [
-                        "I'd profile the system to identify bottlenecks, optimize database queries, implement caching, and consider horizontal scaling options.",
-                        "I'd analyze resource usage, refactor inefficient code, and leverage {skill}'s built-in optimization features to improve performance."
+                        "I'd gather data: logs, metrics, error patterns, and timing. I'd attempt to reproduce the issue, analyze resource usage during failures, check recent deployments, and review code changes. I'd implement additional monitoring and logging if needed to narrow down the root cause.",
+                        "I'd check monitoring dashboards for anomalies, review application and system logs, analyze database performance, examine network issues, and check for resource constraints. I'd create hypotheses, test them systematically, and implement fixes with proper monitoring."
                     ]
                 }
             ]
             
-            # Generate questions for top 5 skills
-            for skill in skills[:5]:
-                for template in tech_templates:
-                    technical_questions.append({
-                        'question': template['question'].format(skill=skill),
-                        'skill': skill,
-                        'difficulty': 'Medium',
-                        'answers': [answer.format(skill=skill) for answer in template['answers']]
-                    })
+            # Generate questions for each skill
+            for skill in skills[:6]:  # Limit to top 6 skills
+                skill_lower = skill.lower()
                 
-                for template in behavioral_templates:
+                # Check if we have specific questions for this skill
+                if skill_lower in skill_specific_questions:
+                    for q in skill_specific_questions[skill_lower]:
+                        technical_questions.append({
+                            'question': q['question'],
+                            'skill': skill,
+                            'difficulty': q['difficulty'],
+                            'answers': q['answers']
+                        })
+                else:
+                    # Use general templates
+                    for template in general_tech_templates[:3]:  # Limit to 3 general questions per skill
+                        technical_questions.append({
+                            'question': template['question'].format(skill=skill),
+                            'skill': skill,
+                            'difficulty': template['difficulty'],
+                            'answers': [answer.format(skill=skill) for answer in template['answers']]
+                        })
+                
+                # Add behavioral questions (2 per skill)
+                for template in behavioral_templates[:2]:
                     behavioral_questions.append({
                         'question': template['question'].format(skill=skill),
                         'skill': skill,
-                        'difficulty': 'Medium',
+                        'difficulty': template['difficulty'],
                         'answers': [answer.format(skill=skill) for answer in template['answers']]
                     })
                 
-                for template in situational_templates:
+                # Add situational questions (2 per skill)
+                for template in situational_templates[:2]:
                     situational_questions.append({
                         'question': template['question'].format(skill=skill),
                         'skill': skill,
-                        'difficulty': 'Medium',
+                        'difficulty': template['difficulty'],
                         'answers': [answer.format(skill=skill) for answer in template['answers']]
                     })
             
-            # Fetch YouTube tutorials using YouTubeRecommendationEngine
-            from .ml_analysis import YouTubeRecommendationEngine
-            youtube_engine = YouTubeRecommendationEngine(settings.YOUTUBE_API_KEY)
-            youtube_videos = youtube_engine.get_skill_recommendations(skills)
-            
             return JsonResponse({
-                'technical_questions': technical_questions[:10],  # Limit to 10
-                'behavioral_questions': behavioral_questions[:5],  # Limit to 5
-                'situational_questions': situational_questions[:5],  # Limit to 5
-                'youtube_recommendations': youtube_videos
+                'technical_questions': technical_questions[:15],  # Return top 15 technical
+                'behavioral_questions': behavioral_questions[:8],  # Return top 8 behavioral
+                'situational_questions': situational_questions[:8],  # Return top 8 situational
             })
         except Exception as e:
+            print(f"Error in InterviewKitView: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return JsonResponse({'error': str(e)}, status=500)
 
 @method_decorator(csrf_exempt, name='dispatch')

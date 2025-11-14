@@ -1,0 +1,48 @@
+Job Title: Full Stack Developer
+
+Location: [Your Company Location or Remote]
+Job Type: [Full-time/Part-time/Contract]
+Experience Level: [Entry-level/Mid-level/Senior]
+
+Job Description:
+We are looking for a skilled Full Stack Developer to join our team. The ideal candidate will be proficient in both front-end and back-end development, capable of designing, developing, and maintaining scalable web applications. You will work closely with cross-functional teams to deliver high-quality software solutions.
+
+Responsibilities:
+- Develop and maintain responsive web applications with a focus on user experience.
+- Design and implement RESTful APIs and microservices.
+- Collaborate with UI/UX designers to improve front-end components.
+- Ensure application performance, security, and scalability.
+- Write clean, maintainable, and efficient code.
+- Troubleshoot, debug, and upgrade software as needed.
+- Work with databases to store, retrieve, and manage data efficiently.
+- Implement CI/CD pipelines for automated deployment and testing.
+- Stay up to date with emerging technologies and best practices.
+
+Required Skills & Qualifications:
+- Proficiency in front-end technologies: HTML, CSS, JavaScript, and modern frameworks (React.js, Angular, or Vue.js).
+- Strong experience in back-end development using Node.js, Express, Django, Flask, or Spring Boot.
+- Knowledge of database technologies: SQL (PostgreSQL, MySQL) and NoSQL (MongoDB, Firebase).
+- Experience with RESTful APIs and GraphQL.
+- Familiarity with cloud services such as AWS, Azure, or Google Cloud.
+- Version control experience using Git and GitHub/GitLab.
+- Knowledge of authentication and authorization techniques (OAuth, JWT, etc.).
+- Experience with Docker and containerization.
+- Familiarity with Agile methodologies and DevOps practices.
+
+Preferred Qualifications:
+- Experience with TypeScript and Next.js.
+- Knowledge of CI/CD tools (Jenkins, GitHub Actions, GitLab CI/CD).
+- Understanding of WebSockets and real-time data processing.
+- Experience with testing frameworks (Jest, Mocha, Cypress).
+
+Benefits:
+- Competitive salary and performance-based bonuses.
+- Flexible work hours and remote work options.
+- Health insurance and paid time off.
+- Professional development opportunities.
+- Collaborative and innovative work environment.
+
+If you are passionate about building high-quality applications and enjoy working with a dynamic team, we would love to hear from you!
+
+How to Apply:
+Submit your resume and portfolio at [Your Company’s Application Link or Email].

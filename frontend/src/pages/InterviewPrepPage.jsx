@@ -202,17 +202,6 @@ const InterviewPrepPage = () => {
                   <MessageCircle className="h-4 w-4" />
                   Situational Questions
                 </button>
-                <button
-                  onClick={() => setActiveTab('resources')}
-                  className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-                    activeTab === 'resources'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted hover:bg-muted/80'
-                  }`}
-                >
-                  <Lightbulb className="h-4 w-4" />
-                  Learning Resources
-                </button>
               </div>
 
               {/* Technical Questions */}
@@ -422,72 +411,6 @@ const InterviewPrepPage = () => {
                       </div>
                     )}
                   </div>
-                </motion.div>
-              )}
-
-              {/* Learning Resources */}
-              {activeTab === 'resources' && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="space-y-6"
-                >
-                  <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
-                    <Lightbulb className="h-8 w-8 text-primary" />
-                    Learning Resources
-                  </h2>
-                  
-                  {interviewData.youtube_recommendations && Object.keys(interviewData.youtube_recommendations).length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {Object.entries(interviewData.youtube_recommendations).map(([skill, videos], skillIndex) => (
-                        <motion.div
-                          key={skillIndex}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.5, delay: skillIndex * 0.1 }}
-                          className="bg-background border rounded-2xl p-6"
-                        >
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="bg-primary/10 p-2 rounded-lg">
-                              <Lightbulb className="h-5 w-5 text-primary" />
-                            </div>
-                            <h3 className="text-xl font-semibold">{skill}</h3>
-                          </div>
-                          
-                          <div className="space-y-4">
-                            {videos.map((video, videoIndex) => (
-                              <a
-                                key={videoIndex}
-                                href={video.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted transition-colors group"
-                              >
-                                <img
-                                  src={video.thumbnail}
-                                  alt={video.title}
-                                  className="w-24 h-16 object-cover rounded"
-                                />
-                                <div className="flex-grow">
-                                  <h4 className="font-medium text-sm group-hover:text-primary transition-colors line-clamp-2">
-                                    {video.title}
-                                  </h4>
-                                </div>
-                              </a>
-                            ))}
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <Lightbulb className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-xl font-semibold mb-2">No Learning Resources Available</h3>
-                      <p className="text-muted-foreground">
-                        Try refreshing the interview kit or completing a new analysis.
-                      </p>
-                    </div>
-                  )}
                 </motion.div>
               )}
             </>

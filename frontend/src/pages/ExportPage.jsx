@@ -222,25 +222,6 @@ const ExportPage = () => {
                     </div>
                   </div>
                 )}
-                
-                {/* Learning Resources */}
-                {analysisData.youtube_recommendations && Object.keys(analysisData.youtube_recommendations).length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3">Learning Resources for Missing Skills</h3>
-                    <div className="space-y-3">
-                      {Object.entries(analysisData.youtube_recommendations).slice(0, 3).map(([skill, videos]) => (
-                        <div key={skill} className="p-3 bg-muted/50 rounded-lg">
-                          <div className="font-medium mb-2">{skill}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {videos && videos.length > 0 
-                              ? `${videos.length} tutorial${videos.length > 1 ? 's' : ''} available` 
-                              : 'No tutorials available'}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             ) : (
               <div className="bg-background border rounded-2xl p-12 text-center mb-8">

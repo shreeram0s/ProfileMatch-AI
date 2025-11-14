@@ -8,19 +8,6 @@ import nltk
 import re
 from collections import Counter
 import string
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.feature_extraction.text import TfidfVectorizer
-
-def calculate_similarity(text1, text2):
-    """Calculate cosine similarity between two text documents"""
-    vectorizer = TfidfVectorizer()
-    try:
-        tfidf_matrix = vectorizer.fit_transform([text1, text2])
-        similarity = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
-        return float(similarity)
-    except Exception as e:
-        print(f"Error calculating similarity: {e}")
-        return 0.0
 
 # Download required NLTK data
 try:
@@ -192,6 +179,65 @@ class SkillExtractor:
         return found_technical, found_soft, all_skills
     
     @staticmethod
+    def extract_company_info(text):
+        """Extract company name, job title, and location from job description"""
+        if not text:
+            return None, None, None
+        
+        company_name = None
+        job_title = None
+        location = None
+        
+        # Try to load spaCy for NER
+        try:
+            nlp = spacy.load("en_core_web_sm")
+            doc = nlp(text[:2000])  # Process first 2000 characters for efficiency
+            
+            # Extract organization entities
+            organizations = [ent.text for ent in doc.ents if ent.label_ == "ORG"]
+            if organizations:
+                company_name = organizations[0]  # Take first organization mentioned
+            
+            # Extract location
+            locations = [ent.text for ent in doc.ents if ent.label_ in ["GPE", "LOC"]]
+            if locations:
+                location = locations[0]
+            
+        except Exception as e:
+            print(f"Error in NER extraction: {e}")
+        
+        # Fallback: Extract from common patterns
+        if not company_name:
+            # Look for patterns like "at [Company]" or "[Company] is hiring"
+            patterns = [
+                r'at\s+([A-Z][A-Za-z\s&.]+?)(?:\s+is|\s+seeks|\s+looking|,|\.|$)',
+                r'([A-Z][A-Za-z\s&.]+?)\s+is\s+(?:hiring|seeking|looking)',
+                r'join\s+([A-Z][A-Za-z\s&.]+?)(?:\s+as|\s+team|,)',
+                r'Company:\s*([A-Z][A-Za-z\s&.]+)',
+            ]
+            
+            for pattern in patterns:
+                match = re.search(pattern, text[:500])
+                if match:
+                    company_name = match.group(1).strip()
+                    break
+        
+        # Extract job title from common patterns
+        title_patterns = [
+            r'(?:job title|position|role):\s*([A-Za-z\s-]+)',
+            r'(?:hiring|seeking|looking for)\s+(?:a\s+)?([A-Z][A-Za-z\s-]+?)(?:\s+to|\s+for|\s+with)',
+            r'^([A-Z][A-Za-z\s-]+)\s+(?:position|role|job)',
+        ]
+        
+        for pattern in title_patterns:
+            match = re.search(pattern, text[:500], re.MULTILINE)
+            if match:
+                job_title = match.group(1).strip()
+                break
+        
+        return company_name, job_title, location
+    
+    @staticmethod
     def extract_skills_from_job_description(text):
         """Extract skills from job description with priority scoring"""
         if not text:
@@ -255,11 +301,204 @@ class EmbeddingAnalyzer:
 class YouTubeRecommendationEngine:
     def __init__(self, api_key):
         self.api_key = api_key
+        self.seen_video_ids = set()  # Track seen video IDs to prevent duplicates
+        self.quota_exceeded = False  # Track if quota is exceeded
     
-    def get_skill_recommendations(self, skills):
-        """Get YouTube recommendations for skills"""
+    def _get_fallback_recommendations(self, skills, max_skills=10):
+        """Generate fallback recommendations when API is unavailable"""
+        print("📺 Using fallback video recommendations (API quota exceeded)")
+        
+        # Curated high-quality tutorial videos for common skills
+        fallback_videos = {
+            'python': [
+                {
+                    'video_id': 'rfscVS0vtbw',
+                    'title': 'Learn Python - Full Course for Beginners [Tutorial]',
+                    'url': 'https://www.youtube.com/watch?v=rfscVS0vtbw',
+                    'thumbnail': 'https://i.ytimg.com/vi/rfscVS0vtbw/hqdefault.jpg',
+                    'channel': 'freeCodeCamp.org',
+                    'description': 'This course will give you a full introduction into all of the core concepts in python.',
+                    'skill': 'python'
+                },
+                {
+                    'video_id': '_uQrJ0TkZlc',
+                    'title': 'Python Tutorial - Python Full Course for Beginners',
+                    'url': 'https://www.youtube.com/watch?v=_uQrJ0TkZlc',
+                    'thumbnail': 'https://i.ytimg.com/vi/_uQrJ0TkZlc/hqdefault.jpg',
+                    'channel': 'Programming with Mosh',
+                    'description': 'Python tutorial for beginners - Learn Python for machine learning, web development, and more.',
+                    'skill': 'python'
+                },
+                {
+                    'video_id': 'kqtD5dpn9C8',
+                    'title': 'Python for Everybody - Full University Python Course',
+                    'url': 'https://www.youtube.com/watch?v=kqtD5dpn9C8',
+                    'thumbnail': 'https://i.ytimg.com/vi/kqtD5dpn9C8/hqdefault.jpg',
+                    'channel': 'freeCodeCamp.org',
+                    'description': 'This Python 3 tutorial course aims to teach everyone the basics of programming computers using Python.',
+                    'skill': 'python'
+                }
+            ],
+            'javascript': [
+                {
+                    'video_id': 'PkZNo7MFNFg',
+                    'title': 'Learn JavaScript - Full Course for Beginners',
+                    'url': 'https://www.youtube.com/watch?v=PkZNo7MFNFg',
+                    'thumbnail': 'https://i.ytimg.com/vi/PkZNo7MFNFg/hqdefault.jpg',
+                    'channel': 'freeCodeCamp.org',
+                    'description': 'This complete 134-part JavaScript tutorial for beginners will teach you everything you need to know to get started.',
+                    'skill': 'javascript'
+                },
+                {
+                    'video_id': 'W6NZfCO5SIk',
+                    'title': 'JavaScript Tutorial for Beginners: Learn JavaScript in 1 Hour',
+                    'url': 'https://www.youtube.com/watch?v=W6NZfCO5SIk',
+                    'thumbnail': 'https://i.ytimg.com/vi/W6NZfCO5SIk/hqdefault.jpg',
+                    'channel': 'Programming with Mosh',
+                    'description': 'JavaScript tutorial for beginners. Learn JavaScript basics in just 1 hour!',
+                    'skill': 'javascript'
+                },
+                {
+                    'video_id': 'jS4aFq5-91M',
+                    'title': 'JavaScript Programming - Full Course',
+                    'url': 'https://www.youtube.com/watch?v=jS4aFq5-91M',
+                    'thumbnail': 'https://i.ytimg.com/vi/jS4aFq5-91M/hqdefault.jpg',
+                    'channel': 'freeCodeCamp.org',
+                    'description': 'Learn JavaScript from scratch by solving over a hundred different coding challenges.',
+                    'skill': 'javascript'
+                }
+            ],
+            'react': [
+                {
+                    'video_id': 'bMknfKXIFA8',
+                    'title': 'React Course - Beginner\'s Tutorial for React JavaScript Library',
+                    'url': 'https://www.youtube.com/watch?v=bMknfKXIFA8',
+                    'thumbnail': 'https://i.ytimg.com/vi/bMknfKXIFA8/hqdefault.jpg',
+                    'channel': 'freeCodeCamp.org',
+                    'description': 'Learn React by building eight real-world projects and solving 140+ coding challenges.',
+                    'skill': 'react'
+                },
+                {
+                    'video_id': 'Ke90Tje7VS0',
+                    'title': 'React JS - React Tutorial for Beginners',
+                    'url': 'https://www.youtube.com/watch?v=Ke90Tje7VS0',
+                    'thumbnail': 'https://i.ytimg.com/vi/Ke90Tje7VS0/hqdefault.jpg',
+                    'channel': 'Programming with Mosh',
+                    'description': 'React tutorial for beginners. Learn React basics in 30 minutes.',
+                    'skill': 'react'
+                },
+                {
+                    'video_id': 'w7ejDZ8SWv8',
+                    'title': 'React JS Full Course 2023 | Build an App and Master React in 1 Hour',
+                    'url': 'https://www.youtube.com/watch?v=w7ejDZ8SWv8',
+                    'thumbnail': 'https://i.ytimg.com/vi/w7ejDZ8SWv8/hqdefault.jpg',
+                    'channel': 'JavaScript Mastery',
+                    'description': 'Master React in one hour. Build a fully functional app using React.',
+                    'skill': 'react'
+                }
+            ],
+            'node.js': [
+                {
+                    'video_id': 'Oe421EPjeBE',
+                    'title': 'Node.js Tutorial for Beginners: Learn Node in 1 Hour',
+                    'url': 'https://www.youtube.com/watch?v=Oe421EPjeBE',
+                    'thumbnail': 'https://i.ytimg.com/vi/Oe421EPjeBE/hqdefault.jpg',
+                    'channel': 'Programming with Mosh',
+                    'description': 'Node.js tutorial for beginners. Learn Node in one hour.',
+                    'skill': 'node.js'
+                },
+                {
+                    'video_id': 'fBNz5xF-Kx4',
+                    'title': 'Node.js / Express Course - Build 4 Projects',
+                    'url': 'https://www.youtube.com/watch?v=fBNz5xF-Kx4',
+                    'thumbnail': 'https://i.ytimg.com/vi/fBNz5xF-Kx4/hqdefault.jpg',
+                    'channel': 'freeCodeCamp.org',
+                    'description': 'Learn Node.js by building four projects.',
+                    'skill': 'node.js'
+                },
+                {
+                    'video_id': 'TlB_eWDSMt4',
+                    'title': 'Node.js Full Course for Beginners | Complete All-in-One Tutorial',
+                    'url': 'https://www.youtube.com/watch?v=TlB_eWDSMt4',
+                    'thumbnail': 'https://i.ytimg.com/vi/TlB_eWDSMt4/hqdefault.jpg',
+                    'channel': 'Dave Gray',
+                    'description': 'Node.js full course for beginners. Complete all-in-one tutorial.',
+                    'skill': 'node.js'
+                }
+            ],
+            'django': [
+                {
+                    'video_id': 'rHux0gMZ3Eg',
+                    'title': 'Python Django Web Framework - Full Course for Beginners',
+                    'url': 'https://www.youtube.com/watch?v=rHux0gMZ3Eg',
+                    'thumbnail': 'https://i.ytimg.com/vi/rHux0gMZ3Eg/hqdefault.jpg',
+                    'channel': 'freeCodeCamp.org',
+                    'description': 'Learn Django in this full course for beginners.',
+                    'skill': 'django'
+                },
+                {
+                    'video_id': 'F5mRW0jo-U4',
+                    'title': 'Django For Everybody - Full Python University Course',
+                    'url': 'https://www.youtube.com/watch?v=F5mRW0jo-U4',
+                    'thumbnail': 'https://i.ytimg.com/vi/F5mRW0jo-U4/hqdefault.jpg',
+                    'channel': 'freeCodeCamp.org',
+                    'description': 'This Django tutorial is taught by the instructor Charles Severence from the University of Michigan.',
+                    'skill': 'django'
+                },
+                {
+                    'video_id': '_ph8GF84fX4',
+                    'title': 'Django Tutorial for Beginners',
+                    'url': 'https://www.youtube.com/watch?v=_ph8GF84fX4',
+                    'thumbnail': 'https://i.ytimg.com/vi/_ph8GF84fX4/hqdefault.jpg',
+                    'channel': 'Tech With Tim',
+                    'description': 'Django tutorial for beginners. Learn how to build websites with Django.',
+                    'skill': 'django'
+                }
+            ]
+        }
+        
+        recommendations = {}
+        for skill in skills[:max_skills]:
+            skill_lower = skill.lower()
+            
+            # Try exact match first
+            if skill_lower in fallback_videos:
+                recommendations[skill] = fallback_videos[skill_lower]
+                print(f"  ✅ Added {len(fallback_videos[skill_lower])} fallback videos for {skill}")
+            # Try partial match
+            else:
+                matched = False
+                for key in fallback_videos.keys():
+                    if key in skill_lower or skill_lower in key:
+                        recommendations[skill] = fallback_videos[key]
+                        print(f"  ✅ Added {len(fallback_videos[key])} fallback videos for {skill} (matched with {key})")
+                        matched = True
+                        break
+                
+                if not matched:
+                    # Generic programming tutorial
+                    recommendations[skill] = [
+                        {
+                            'video_id': 'zOjov-2OZ0E',
+                            'title': f'Learn {skill.title()} - Programming Tutorial',
+                            'url': 'https://www.youtube.com/watch?v=zOjov-2OZ0E',
+                            'thumbnail': 'https://i.ytimg.com/vi/zOjov-2OZ0E/hqdefault.jpg',
+                            'channel': 'freeCodeCamp.org',
+                            'description': f'Complete tutorial to learn {skill}.',
+                            'skill': skill
+                        }
+                    ]
+                    print(f"  ℹ️  Added generic fallback video for {skill}")
+        
+        return recommendations
+    
+    def get_skill_recommendations(self, skills, max_skills=10):
+        """Get YouTube recommendations for skills with no duplicates"""
         if not skills or not self.api_key:
+            print(f"⚠️ YouTube API - Skills: {skills}, API Key exists: {bool(self.api_key)}")
             return {}
+        
+        print(f"🎥 Fetching YouTube recommendations for {len(skills)} skills...")
         
         try:
             from googleapiclient.discovery import build
@@ -267,43 +506,100 @@ class YouTubeRecommendationEngine:
             youtube = build('youtube', 'v3', developerKey=self.api_key)
             
             recommendations = {}
-            for skill in skills[:5]:  # Limit to top 5 skills
+            self.seen_video_ids.clear()  # Reset for each new request
+            
+            # Limit to specified number of skills
+            for skill in skills[:max_skills]:
+                print(f"\n🔍 Searching videos for skill: {skill}")
                 try:
                     search_response = youtube.search().list(
                         q=f"learn {skill} tutorial programming",
                         part='snippet',
                         type='video',
-                        maxResults=3,
-                        order='viewCount'
+                        maxResults=10,  # Fetch more to filter duplicates
+                        order='relevance',  # Use relevance for better skill matching
+                        relevanceLanguage='en'
                     ).execute()
+                    
+                    print(f"  ✅ Found {len(search_response.get('items', []))} results for {skill}")
                     
                     videos = []
                     for search_result in search_response.get('items', []):
+                        video_id = search_result['id']['videoId']
+                        
+                        # Skip if we've already seen this video
+                        if video_id in self.seen_video_ids:
+                            continue
+                        
+                        # Mark as seen
+                        self.seen_video_ids.add(video_id)
+                        
+                        # Get the best available thumbnail
+                        thumbnails = search_result['snippet']['thumbnails']
+                        thumbnail_url = (
+                            thumbnails.get('high', {}).get('url') or
+                            thumbnails.get('medium', {}).get('url') or
+                            thumbnails.get('default', {}).get('url')
+                        )
+                        
                         video = {
+                            'video_id': video_id,
                             'title': search_result['snippet']['title'],
-                            'url': f"https://www.youtube.com/watch?v={search_result['id']['videoId']}",
-                            'thumbnail': search_result['snippet']['thumbnails']['default']['url']
+                            'url': f"https://www.youtube.com/watch?v={video_id}",
+                            'thumbnail': thumbnail_url,
+                            'channel': search_result['snippet']['channelTitle'],
+                            'description': search_result['snippet']['description'][:200],  # Limit description
+                            'skill': skill  # Tag video with the skill it's for
                         }
                         videos.append(video)
+                        
+                        # Stop when we have 3 unique videos for this skill
+                        if len(videos) >= 3:
+                            break
                     
-                    recommendations[skill] = videos
+                    # Only add if we found videos for this skill
+                    if videos:
+                        recommendations[skill] = videos
+                        print(f"  ✅ Added {len(videos)} videos for {skill}")
+                    else:
+                        print(f"  ⚠️ No unique videos found for {skill}")
+                        
                 except HttpError as e:
                     if 'quotaExceeded' in str(e):
-                        print(f"YouTube API quota exceeded for skill: {skill}")
-                        # Return empty list for this skill but continue with others
-                        recommendations[skill] = []
+                        print(f"❌ YouTube API quota exceeded for skill: {skill}")
+                        self.quota_exceeded = True
+                        # Use fallback recommendations for remaining skills
+                        print("🔄 Switching to fallback recommendations...")
+                        fallback = self._get_fallback_recommendations(skills, max_skills)
+                        recommendations.update(fallback)
+                        break  # Exit the loop and use fallback for all
                     else:
+                        print(f"❌ HTTP Error for {skill}: {e}")
                         # Re-raise other HTTP errors
                         raise e
                 except Exception as e:
-                    print(f"Error fetching YouTube recommendations for skill {skill}: {e}")
+                    print(f"❌ Error fetching YouTube recommendations for skill {skill}: {e}")
                     recommendations[skill] = []
             
+            print(f"\n🎯 Final: Fetched videos for {len(recommendations)} skills")
             return recommendations
+        except HttpError as e:
+            # Handle quota exceeded at top level
+            if 'quotaExceeded' in str(e):
+                print("❌ YouTube API quota exceeded")
+                print("🔄 Using fallback recommendations...")
+                return self._get_fallback_recommendations(skills, max_skills)
+            else:
+                print(f"❌ HTTP Error: {e}")
+                import traceback
+                traceback.print_exc()
+                return self._get_fallback_recommendations(skills, max_skills)
         except Exception as e:
-            print(f"Error fetching YouTube recommendations: {e}")
-            # Return empty dict instead of failing completely
-            return {}
+            print(f"❌ Error fetching YouTube recommendations: {e}")
+            import traceback
+            traceback.print_exc()
+            # Use fallback instead of returning empty dict
+            return self._get_fallback_recommendations(skills, max_skills)
 
 class ResumeAnalyzer:
     def __init__(self, youtube_api_key=None):

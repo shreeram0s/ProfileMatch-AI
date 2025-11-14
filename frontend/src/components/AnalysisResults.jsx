@@ -18,7 +18,6 @@ import {
   Brain, 
   BarChart3, 
   Lightbulb, 
-  Youtube, 
   CheckCircle, 
   XCircle,
   TrendingUp,
@@ -51,7 +50,7 @@ import {
   Users as UsersIcon,
   Building,
   TrendingUp as TrendingUpIcon,
-  Play
+  Cpu
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -232,49 +231,6 @@ const AnalysisResults = ({ analysisData }) => {
   ];
   
   const COLORS = ['#3b82f6', '#ef4444'];
-  
-  // Prepare bar chart data for skill frequencies
-  const resumeSkillFreq = Object.entries(analysisData.resume_keyword_freq || {})
-    .map(([skill, freq]) => ({ name: skill, frequency: freq }))
-    .sort((a, b) => b.frequency - a.frequency)
-    .slice(0, 10);
-  
-  const jobSkillFreq = Object.entries(analysisData.jd_keyword_freq || {})
-    .map(([skill, freq]) => ({ name: skill, frequency: freq }))
-    .sort((a, b) => b.frequency - a.frequency)
-    .slice(0, 10);
-  
-  // Combine data for comparison chart
-  const combinedSkillData = [];
-  const allSkills = [...new Set([...Object.keys(analysisData.resume_keyword_freq || {}), ...Object.keys(analysisData.jd_keyword_freq || {})])];
-  
-  allSkills.forEach(skill => {
-    combinedSkillData.push({
-      name: skill,
-      resume: analysisData.resume_keyword_freq?.[skill] || 0,
-      job: analysisData.jd_keyword_freq?.[skill] || 0
-    });
-  });
-  
-  // Sort by job frequency and take top 10
-  const sortedCombinedData = combinedSkillData
-    .sort((a, b) => b.job - a.job)
-    .slice(0, 10);
-  
-  // Prepare radar chart data
-  const radarData = [
-    { subject: 'Overall Match', A: getRoundedPercentage(analysisData.overall_score || analysisData.match_score), fullMark: 100 },
-    { subject: 'Semantic Similarity', A: getRoundedPercentage(analysisData.semantic_similarity), fullMark: 100 },
-    { subject: 'Skill Match', A: getRoundedPercentage(analysisData.skill_match_score), fullMark: 100 },
-  ];
-  
-  // Prepare scatter plot data
-  const scatterData = (analysisData.resume_skills || []).map((skill, index) => ({
-    x: index,
-    y: analysisData.resume_keyword_freq?.[skill] || 0,
-    z: (analysisData.job_skills || []).includes(skill) ? 200 : 100,
-    skill: skill
-  }));
 
   return (
     <div className="bg-background border rounded-2xl p-6">
@@ -323,17 +279,6 @@ const AnalysisResults = ({ analysisData }) => {
           <Lightbulb className="h-4 w-4" />
           Suggestions
         </button>
-        <button
-          onClick={() => setActiveTab('learning')}
-          className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-            activeTab === 'learning'
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-muted hover:bg-muted/80'
-          }`}
-        >
-          <Youtube className="h-4 w-4" />
-          Learning Resources
-        </button>
       </div>
 
       {/* Overview Tab */}
@@ -368,7 +313,7 @@ const AnalysisResults = ({ analysisData }) => {
             <div className="bg-muted/30 rounded-xl p-6">
               <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
                 <Brain className="h-5 w-5" />
-                Skill Distribution
+                Skill Match Overview
               </h3>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
@@ -394,43 +339,47 @@ const AnalysisResults = ({ analysisData }) => {
             
             <div className="bg-muted/30 rounded-xl p-6">
               <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                Top Skills in Resume
-              </h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart
-                  data={resumeSkillFreq}
-                  layout="vertical"
-                  margin={{ top: 5, right: 30, left: 60, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
-                  <YAxis dataKey="name" type="category" scale="band" />
-                  <Tooltip />
-                  <Bar dataKey="frequency" fill="#3b82f6" name="Frequency" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            
-            <div className="bg-muted/30 rounded-xl p-6 lg:col-span-2">
-              <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
                 <Target className="h-5 w-5" />
-                Skill Frequency Comparison
+                Skills Summary
               </h3>
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart
-                  data={sortedCombinedData}
-                  margin={{ top: 20, right: 30, left: 60, bottom: 60 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="resume" name="Resume Frequency" fill="#3b82f6" />
-                  <Bar dataKey="job" name="Job Description Frequency" fill="#8b5cf6" />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-green-500/10 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="h-6 w-6 text-green-500" />
+                    <span className="font-medium">Matched Skills</span>
+                  </div>
+                  <span className="text-2xl font-bold text-green-500">
+                    {analysisData.resume_skills?.filter(skill => analysisData.job_skills?.includes(skill)).length || 0}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between p-4 bg-red-500/10 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <XCircle className="h-6 w-6 text-red-500" />
+                    <span className="font-medium">Missing Skills</span>
+                  </div>
+                  <span className="text-2xl font-bold text-red-500">
+                    {analysisData.missing_skills?.length || 0}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between p-4 bg-blue-500/10 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Award className="h-6 w-6 text-blue-500" />
+                    <span className="font-medium">Total Resume Skills</span>
+                  </div>
+                  <span className="text-2xl font-bold text-blue-500">
+                    {analysisData.resume_skills?.length || 0}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between p-4 bg-purple-500/10 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-6 w-6 text-purple-500" />
+                    <span className="font-medium">Required Skills (JD)</span>
+                  </div>
+                  <span className="text-2xl font-bold text-purple-500">
+                    {analysisData.job_skills?.length || 0}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -514,25 +463,42 @@ const AnalysisResults = ({ analysisData }) => {
           animate={{ opacity: 1, y: 0 }}
           className="space-y-6"
         >
-          <div className="bg-muted/30 rounded-xl p-6">
-            <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" />
-              Skill Frequency Comparison
-            </h3>
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart
-                data={sortedCombinedData}
-                margin={{ top: 20, right: 30, left: 60, bottom: 60 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="resume" name="Resume Frequency" fill="#3b82f6" />
-                <Bar dataKey="job" name="Job Description Frequency" fill="#8b5cf6" />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-muted/30 rounded-xl p-6">
+              <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-green-500" />
+                Skills Match Details
+              </h3>
+              <div className="space-y-3">
+                {analysisData.resume_skills?.filter(skill => analysisData.job_skills?.includes(skill)).map((skill, index) => (
+                  <div key={index} className="flex items-center gap-2 p-3 bg-green-500/10 rounded-lg">
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <span className="font-medium text-green-700 dark:text-green-300">{skill}</span>
+                  </div>
+                ))}
+                {analysisData.resume_skills?.filter(skill => analysisData.job_skills?.includes(skill)).length === 0 && (
+                  <p className="text-muted-foreground text-center py-4">No matching skills found</p>
+                )}
+              </div>
+            </div>
+            
+            <div className="bg-muted/30 rounded-xl p-6">
+              <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <XCircle className="h-5 w-5 text-red-500" />
+                Skills Gap Analysis
+              </h3>
+              <div className="space-y-3">
+                {analysisData.missing_skills?.slice(0, 10).map((skill, index) => (
+                  <div key={index} className="flex items-center gap-2 p-3 bg-red-500/10 rounded-lg">
+                    <XCircle className="h-4 w-4 text-red-500" />
+                    <span className="font-medium text-red-700 dark:text-red-300">{skill}</span>
+                  </div>
+                ))}
+                {analysisData.missing_skills?.length === 0 && (
+                  <p className="text-muted-foreground text-center py-4">No missing skills - Perfect match!</p>
+                )}
+              </div>
+            </div>
           </div>
         </motion.div>
       )}
@@ -563,81 +529,6 @@ const AnalysisResults = ({ analysisData }) => {
                 <p className="text-muted-foreground">No specific suggestions available at this time.</p>
               )}
             </div>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Learning Resources Tab */}
-      {activeTab === 'learning' && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-6"
-        >
-          <div className="bg-muted/30 rounded-xl p-6">
-            <div className="flex items-start gap-3 mb-4">
-              <Youtube className="h-6 w-6 text-red-500 mt-1 flex-shrink-0" />
-              <div>
-                <h3 className="text-xl font-semibold">Learning Resources for Missing Skills</h3>
-                <p className="text-muted-foreground text-sm mt-1">
-                  Personalized YouTube tutorials to help you learn the skills missing from your resume
-                </p>
-              </div>
-            </div>
-            
-            {analysisData.youtube_recommendations && Object.keys(analysisData.youtube_recommendations).length > 0 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {Object.entries(analysisData.youtube_recommendations).map(([skill, videos]) => (
-                  <div key={skill} className="border rounded-lg p-4 bg-background">
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <div className="bg-blue-500/20 p-1 rounded">
-                        {getSkillLogo(skill)}
-                      </div>
-                      {skill}
-                    </h4>
-                    {videos && videos.length > 0 ? (
-                      <div className="space-y-4">
-                        {videos.map((video, videoIndex) => (
-                          <a
-                            key={videoIndex}
-                            href={video.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-start gap-4 p-4 hover:bg-muted rounded-lg transition-colors group"
-                          >
-                            <div className="flex-shrink-0 relative">
-                              <img 
-                                src={video.thumbnail} 
-                                alt={video.title} 
-                                className="h-20 w-32 rounded object-cover"
-                              />
-                              <div className="absolute inset-0 bg-black bg-opacity-30 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Play className="h-6 w-6 text-white" />
-                              </div>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-base line-clamp-2 group-hover:text-primary transition-colors">{video.title}</p>
-                              <p className="text-sm text-muted-foreground mt-1">Watch on YouTube</p>
-                            </div>
-                          </a>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-6">
-                        <Youtube className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                        <p className="text-muted-foreground text-sm">No YouTube tutorials found for this skill</p>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <Youtube className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground mb-2">No learning resources available for your missing skills.</p>
-                <p className="text-sm text-muted-foreground">Try uploading a resume and job description to get personalized recommendations.</p>
-              </div>
-            )}
           </div>
         </motion.div>
       )}
