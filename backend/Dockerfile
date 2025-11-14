@@ -4,7 +4,8 @@ FROM python:3.9-slim
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PORT=8000
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -26,17 +27,27 @@ RUN pip install --upgrade pip && \
 # Install spaCy model
 RUN python -m spacy download en_core_web_sm
 
+# Download NLTK data
+RUN python -c "import nltk; nltk.download('wordnet', quiet=True); nltk.download('omw-1.4', quiet=True); nltk.download('punkt', quiet=True); nltk.download('stopwords', quiet=True)"
+
 # Copy application code
 COPY . .
 
-# Create necessary directories
-RUN mkdir -p media/resumes staticfiles
+# Create necessary directories and collect static files
+RUN mkdir -p media/resumes staticfiles && \
+    python manage.py collectstatic --noinput
 
-# Make deploy script executable
-RUN chmod +x deploy.sh
+# Expose port
+EXPOSE 8000
 
-# Expose port (Render will provide PORT env var at runtime)
-EXPOSE $PORT
-
-# Run deployment script and start server
-CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && mkdir -p media/resumes && gunicorn profilematch.wsgi:application --bind 0.0.0.0:$PORT --timeout 120 --workers 2 --threads 4 --worker-class gthread --access-logfile - --error-logfile -"]
+# Run migrations and start server
+CMD python manage.py migrate --noinput && \
+    gunicorn profilematch.wsgi:application \
+    --bind 0.0.0.0:$PORT \
+    --workers 2 \
+    --threads 2 \
+    --timeout 120 \
+    --worker-class gthread \
+    --log-level info \
+    --access-logfile - \
+    --error-logfile -
