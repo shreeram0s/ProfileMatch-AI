@@ -36,11 +36,7 @@ RUN mkdir -p media/resumes staticfiles
 RUN chmod +x deploy.sh
 
 # Expose port (Render will provide PORT env var at runtime)
-EXPOSE 8000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:${PORT:-8000}/api/health/ || exit 1
+EXPOSE $PORT
 
 # Run deployment script and start server
-CMD ["sh", "-c", "./deploy.sh && gunicorn profilematch.wsgi:application --bind 0.0.0.0:${PORT:-8000} --timeout 120 --workers 2 --threads 4 --worker-class gthread --access-logfile - --error-logfile -"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && mkdir -p media/resumes && gunicorn profilematch.wsgi:application --bind 0.0.0.0:$PORT --timeout 120 --workers 2 --threads 4 --worker-class gthread --access-logfile - --error-logfile -"]
