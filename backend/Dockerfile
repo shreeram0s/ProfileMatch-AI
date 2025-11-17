@@ -2,13 +2,13 @@ FROM python:3.9-slim
 
 ENV PYTHONUNBUFFERED=1
 
-# Set production environment variables (Railway-optimized)
+# Set production environment variables
 ENV DEBUG=False
 ENV CORS_ALLOW_ALL_ORIGINS=True
 ENV ALLOWED_HOSTS=*
 ENV SECRET_KEY=django-insecure-production-5z!#7z$3%3+5^2!+x%3!+x%3!+x%3!+x%3!+x%3!+x%3!+x%
-ENV CSRF_TRUSTED_ORIGINS=http://localhost:5176,http://localhost:5177,https://*.up.railway.app,https://*.railway.app
-ENV CORS_ALLOWED_ORIGINS=http://localhost:5176,http://localhost:5177,http://127.0.0.1:5176,https://*.up.railway.app
+ENV CSRF_TRUSTED_ORIGINS=http://localhost:5176,http://localhost:5177,https://*.onrender.com
+ENV CORS_ALLOWED_ORIGINS=http://localhost:5176,http://localhost:5177,http://127.0.0.1:5176,https://*.onrender.com
 
 # Database credentials (hardcoded for self-contained deployment)
 ENV DB_NAME=magic2
