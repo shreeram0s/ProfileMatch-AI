@@ -30,17 +30,22 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 # Get Render hostname if deployed on Render
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 
-allowed_hosts_str = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,*.onrender.com', cast=str)
-ALLOWED_HOSTS = [s.strip() for s in allowed_hosts_str.split(',')]
+allowed_hosts_str = config('ALLOWED_HOSTS', default='*', cast=str)
+# Support wildcard or comma-separated list
+if allowed_hosts_str == '*':
+    ALLOWED_HOSTS = ['*']
+else:
+    ALLOWED_HOSTS = [s.strip() for s in allowed_hosts_str.split(',')]
 
 # Add Render hostname if available
-if RENDER_EXTERNAL_HOSTNAME:
+if RENDER_EXTERNAL_HOSTNAME and '*' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 # CSRF Configuration for production
+# Support both localhost and production URLs by default
 CSRF_TRUSTED_ORIGINS = config(
     'CSRF_TRUSTED_ORIGINS',
-    default='http://localhost:5176,http://localhost:5177,https://profilematch-frontend.onrender.com',
+    default='http://localhost:5176,http://localhost:5177,http://127.0.0.1:5176,https://profilematch-frontend.onrender.com,https://*.onrender.com',
     cast=lambda v: [s.strip() for s in v.split(',')]
 )
 
@@ -169,8 +174,8 @@ os.makedirs(MEDIA_ROOT, exist_ok=True)
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS settings
-# Allow all origins for debugging (restrict this in production)
-CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=False, cast=bool)
+# Allow all origins by default for easier deployment (can be restricted later)
+CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=True, cast=bool)
 
 CORS_ALLOWED_ORIGINS = config(
     'CORS_ALLOWED_ORIGINS',
