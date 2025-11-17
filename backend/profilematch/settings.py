@@ -29,6 +29,13 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,*.onrender.com', cast=lambda v: [s.strip() for s in v.split(',')])
 
+# CSRF Configuration for production
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='http://localhost:5176,http://localhost:5177,https://profilematch-frontend.onrender.com',
+    cast=lambda v: [s.strip() for s in v.split(',')]
+)
+
 
 # Application definition
 
@@ -174,6 +181,13 @@ CORS_ALLOW_HEADERS = [
     'x-csrftoken',
     'x-requested-with',
 ]
+
+# Exempt API endpoints from CSRF validation (REST API doesn't need CSRF)
+CSRF_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SAMESITE = 'Lax'
 
 # REST Framework settings
 REST_FRAMEWORK = {
