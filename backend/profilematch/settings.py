@@ -27,7 +27,15 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-5z!#7z$3%3+5^2!+x%3!+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,*.onrender.com', cast=lambda v: [s.strip() for s in v.split(',')])
+# Get Render hostname if deployed on Render
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+
+allowed_hosts_str = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,*.onrender.com', cast=str)
+ALLOWED_HOSTS = [s.strip() for s in allowed_hosts_str.split(',')]
+
+# Add Render hostname if available
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 # CSRF Configuration for production
 CSRF_TRUSTED_ORIGINS = config(
@@ -161,13 +169,15 @@ os.makedirs(MEDIA_ROOT, exist_ok=True)
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS settings
+# Allow all origins for debugging (restrict this in production)
+CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=False, cast=bool)
+
 CORS_ALLOWED_ORIGINS = config(
     'CORS_ALLOWED_ORIGINS',
     default='http://localhost:5176,http://localhost:5177,http://127.0.0.1:5176,http://127.0.0.1:5177,https://profilematch-frontend.onrender.com',
     cast=lambda v: [s.strip() for s in v.split(',')]
 )
 
-CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_HEADERS = [
