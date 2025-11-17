@@ -16,8 +16,7 @@ export default defineConfig({
     allowedHosts: [
       'localhost',
       '127.0.0.1',
-      'projektafrontend.onrender.com',
-      'profilematch-frontend.onrender.com'
+      'profilematch-ai-frontend.onrender.com'
     ]
   },
   base: './',
