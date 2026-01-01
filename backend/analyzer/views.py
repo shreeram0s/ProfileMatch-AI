@@ -8,7 +8,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 import json
 from .models import Resume, Analysis, SavedReport
-from .ml_analysis import ResumeAnalyzer, TextExtractor, YouTubeRecommendationEngine
+from .ml_analysis import ResumeAnalyzer, TextExtractor
 from .job_fetcher import fetch_jobs_from_adzuna
 from django.conf import settings
 
@@ -381,9 +381,6 @@ class AnalyzeView(View):
             if jd_skills:
                 matched_skills = len([skill for skill in resume_skills if skill in jd_skills])
                 skill_match_percentage = (matched_skills / len(jd_skills)) * 100
-            elif basic_similarity > 95:
-                # If JD has no extracted skills but documents are identical (high similarity), assume perfect match
-                skill_match_percentage = 100.0
             
             # Initialize recommendations dictionary early to avoid reference-before-assignment
             youtube_recommendations = {}
@@ -402,14 +399,95 @@ class AnalyzeView(View):
             
             print(f"Basic analysis completed with overall score: {overall_score}")
             
-            # Get YouTube recommendations using the engine
-            print(f"Fetching YouTube recommendations for {len(missing_skills)} missing skills...")
-            youtube_engine = YouTubeRecommendationEngine(settings.YOUTUBE_API_KEY)
-            youtube_recommendations = youtube_engine.get_skill_recommendations(missing_skills)
+            # Import YouTube API client
+            from googleapiclient.discovery import build
+            import requests
             
-            # Update the analysis object with the recommendations
-            analysis.youtube_recommendations = youtube_recommendations
-            analysis.save()
+            # Initialize YouTube API client
+            youtube = build('youtube', 'v3', developerKey=settings.YOUTUBE_API_KEY)
+            
+            # Use the initialized youtube_recommendations and populate if API is available
+            
+            # Get YouTube recommendations for each missing skill
+            for skill in missing_skills[:5]:  # Limit to first 5 missing skills
+                try:
+                    print(f"Fetching YouTube videos for skill: {skill}")
+                    # Search for videos related to the skill
+                    search_response = youtube.search().list(
+                        q=skill,
+                        part='snippet',
+                        type='video',
+                        maxResults=5,
+                        order='relevance'  # Get most relevant videos
+                    ).execute()
+                    
+                    print(f"YouTube search response for {skill}: {len(search_response.get('items', []))} items")
+                    
+                    videos = []
+                    for item in search_response.get('items', []):
+                        video_id = item['id']['videoId']
+                        snippet = item['snippet']
+                        
+                        print(f"Processing video: {snippet['title'][:50]}...")
+                        
+                        # Get video details (duration, view count, etc.)
+                        video_response = youtube.videos().list(
+                            id=video_id,
+                            part='contentDetails,statistics'
+                        ).execute()
+                        
+                        duration = 'N/A'
+                        view_count = 'N/A'
+                        if video_response.get('items'):
+                            video_details = video_response['items'][0]
+                            content_details = video_details.get('contentDetails', {})
+                            stats = video_details.get('statistics', {})
+                            
+                            # Format duration
+                            duration_iso = content_details.get('duration', 'PT0S')
+                            duration = duration_iso.replace('PT', '').replace('H', 'h ').replace('M', 'm ').replace('S', 's')
+                            
+                            # Format view count
+                            view_count = stats.get('viewCount', '0')
+                            view_count = format_view_count(view_count)
+                        
+                        # Get highest quality thumbnail available
+                        thumbnail_url = snippet.get('thumbnails', {}).get('high', {}).get('url')
+                        if not thumbnail_url:
+                            thumbnail_url = snippet.get('thumbnails', {}).get('medium', {}).get('url')
+                        if not thumbnail_url:
+                            thumbnail_url = snippet.get('thumbnails', {}).get('default', {}).get('url')
+                        
+                        videos.append({
+                            'title': snippet['title'],
+                            'url': f'https://www.youtube.com/watch?v={video_id}',
+                            'thumbnail': thumbnail_url,
+                            'duration': duration,
+                            'views': view_count,
+                            'channel': snippet['channelTitle'],
+                            'description': snippet['description'][:200] + '...' if len(snippet['description']) > 200 else snippet['description']
+                        })
+                        
+                    youtube_recommendations[skill] = videos
+                    
+                    print(f"Successfully added {len(videos)} videos for skill {skill}")
+                    
+                except Exception as e:
+                    print(f"Error fetching YouTube videos for skill {skill}: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+                    # Fallback to generic recommendation if API call fails
+                    youtube_recommendations[skill] = [
+                        {
+                            'title': f'{skill} - Complete Tutorial',
+                            'url': 'https://www.youtube.com/results?search_query=' + skill.replace(' ', '+'),
+                            'thumbnail': 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg',
+                            'duration': 'N/A',
+                            'views': 'N/A',
+                            'channel': 'Various',
+                            'description': f'Learning resources for {skill} skill development'
+                        }
+                    ]
             
             # Return basic results quickly
             return JsonResponse({
@@ -854,8 +932,22 @@ class InterviewKitView(View):
 @method_decorator(csrf_exempt, name='dispatch')
 class HistoryView(View):
     def get(self, request):
-        # Return empty list as history is restricted
-        return JsonResponse({'history': []})
+        try:
+            # Get all analyses ordered by creation date
+            analyses = Analysis.objects.select_related('resume', 'jd').order_by('-created_at')
+            
+            history = []
+            for analysis in analyses:
+                history.append({
+                    'id': analysis.id,
+                    'match_score': analysis.match_score,
+                    'missing_skills': analysis.missing_skills,
+                    'created_at': analysis.created_at.isoformat()
+                })
+            
+            return JsonResponse({'history': history})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CompareView(View):
@@ -958,41 +1050,24 @@ class SaveReportView(View):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class DeleteReportView(View):
-    def post(self, request):
-        try:
-            data = json.loads(request.body)
-            report_id = data.get('report_id')
-            confirmation_name = data.get('name')
-
-            if not report_id or not confirmation_name:
-                return JsonResponse({'error': 'Report ID and confirmation name are required'}, status=400)
-
-            try:
-                report = SavedReport.objects.get(id=report_id)
-                
-                # Strict check: Name must match exactly (case-sensitive or insensitive as per requirement)
-                # "delete the saved report only by after entering the report name" implies strict verification.
-                if report.name != confirmation_name:
-                     return JsonResponse({'error': 'Report name does not match. Please enter the exact name to delete.'}, status=403)
-                
-                report.delete()
-                return JsonResponse({'success': True, 'message': 'Report deleted successfully'})
-                
-            except SavedReport.DoesNotExist:
-                return JsonResponse({'error': 'Report not found'}, status=404)
-                
-        except Exception as e:
-            print(f"Error in DeleteReportView: {str(e)}")
-            return JsonResponse({'error': str(e)}, status=500)
-
-@method_decorator(csrf_exempt, name='dispatch')
 class UserReportsView(View):
     def get(self, request):
         try:
-            # Privacy protection: Do not list all reports.
-            # Users must know the exact name of the report to find it.
-            return JsonResponse({'reports': []})
+            # Get all saved reports ordered by creation date
+            saved_reports = SavedReport.objects.select_related('analysis').order_by('-created_at')
+            
+            reports_data = []
+            for report in saved_reports:
+                reports_data.append({
+                    'id': report.id,
+                    'name': report.name,
+                    'analysis_id': report.analysis.id,
+                    'match_score': report.analysis.match_score,
+                    'created_at': report.created_at.isoformat(),
+                    'updated_at': report.updated_at.isoformat()
+                })
+            
+            return JsonResponse({'reports': reports_data})
         except Exception as e:
             print(f"Error in UserReportsView: {str(e)}")
             import traceback
@@ -1041,9 +1116,11 @@ class ReportByNameView(View):
             if not name:
                 return JsonResponse({'error': 'name query parameter is required'}, status=400)
 
-            # Strict privacy: Only exact matches allowed (case-insensitive)
-            # This prevents users from guessing report names via partial matches
-            reports = SavedReport.objects.select_related('analysis').filter(name__iexact=name)
+            exact_matches = SavedReport.objects.select_related('analysis').filter(name__iexact=name)
+            if exact_matches.exists():
+                reports = exact_matches
+            else:
+                reports = SavedReport.objects.select_related('analysis').filter(name__icontains=name)
 
             results = []
             for report in reports.order_by('-created_at'):

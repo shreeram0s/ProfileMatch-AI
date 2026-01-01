@@ -12,7 +12,6 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 import os
-import dj_database_url
 from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -39,8 +38,14 @@ else:
     ALLOWED_HOSTS = [s.strip() for s in allowed_hosts_str.split(',')]
 
 # Add Render hostname if available
-if RENDER_EXTERNAL_HOSTNAME and '*' not in ALLOWED_HOSTS:
-    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+if RENDER_EXTERNAL_HOSTNAME:
+    if '*' not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+    
+    render_url = f'https://{RENDER_EXTERNAL_HOSTNAME}'
+    # Add to CSRF trusted origins if not already present
+    if render_url not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(render_url)
 
 # CSRF Configuration for production
 # Support both localhost and production URLs by default
@@ -105,10 +110,10 @@ ASGI_APPLICATION = 'profilematch.asgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
-        conn_max_age=600
-    )
+    'default': {
+        'ENGINE': os.environ.get('DB_ENGINE', 'django.db.backends.sqlite3'),
+        'NAME': os.environ.get('DB_NAME', str(BASE_DIR / 'db.sqlite3')),
+    }
 }
 
 
@@ -148,7 +153,6 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Create staticfiles directory if it doesn't exist
 os.makedirs(STATIC_ROOT, exist_ok=True)
