@@ -38,14 +38,8 @@ else:
     ALLOWED_HOSTS = [s.strip() for s in allowed_hosts_str.split(',')]
 
 # Add Render hostname if available
-if RENDER_EXTERNAL_HOSTNAME:
-    if '*' not in ALLOWED_HOSTS:
-        ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
-    
-    render_url = f'https://{RENDER_EXTERNAL_HOSTNAME}'
-    # Add to CSRF trusted origins if not already present
-    if render_url not in CSRF_TRUSTED_ORIGINS:
-        CSRF_TRUSTED_ORIGINS.append(render_url)
+if RENDER_EXTERNAL_HOSTNAME and '*' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 # CSRF Configuration for production
 # Support both localhost and production URLs by default

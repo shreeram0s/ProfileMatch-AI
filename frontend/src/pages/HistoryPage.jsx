@@ -11,6 +11,8 @@ import {
   TrendingUp,
   Save,
   Eye,
+  Trash2,
+  AlertTriangle,
   Search
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
@@ -19,49 +21,31 @@ import AnalysisResults from '../components/AnalysisResults';
 
 const HistoryPage = () => {
   const [hasSearched, setHasSearched] = useState(false);
-  const [history, setHistory] = useState([]);
+  // const [history, setHistory] = useState([]); // Removed Recent Analysis
   const [savedReports, setSavedReports] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Changed default to false as we don't fetch on load
   const [error, setError] = useState(null);
   const [selectedAnalysis, setSelectedAnalysis] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
-  const [activeTab, setActiveTab] = useState('saved'); // 'recent' or 'saved'
+  // const [activeTab, setActiveTab] = useState('saved'); // Removed Tabs
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [selectedForSave, setSelectedForSave] = useState(null);
   const [saveName, setSaveName] = useState('');
   const [saveLoading, setSaveLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
+  
+  // Delete modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [reportToDelete, setReportToDelete] = useState(null);
+  const [deleteConfirmationName, setDeleteConfirmationName] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
+  
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchHistory();
-  }, []);
-
-  const fetchHistory = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const response = await api.get('/api/history/');
-      setHistory(response.data.history);
-    } catch (err) {
-      setError('Error fetching analysis history. Please try again.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchSavedReports = async () => {
-    try {
-      const response = await api.get('/api/user-reports/');
-      setSavedReports(response.data.reports);
-    } catch (err) {
-      console.error('Error fetching saved reports:', err);
-    }
-  };
+  // Removed fetchHistory useEffect
 
   const searchSavedReports = async () => {
     if (!searchTerm.trim()) return;
@@ -77,11 +61,10 @@ const HistoryPage = () => {
     }
   };
 
-  // If a name param exists, auto-switch to Saved tab and run search
+  // If a name param exists, run search
   useEffect(() => {
     const prefill = searchParams.get('name');
     if (prefill) {
-      setActiveTab('saved');
       setSearchTerm(prefill);
       // Delay slightly to ensure tab content renders before search triggers
       setTimeout(() => {
@@ -125,6 +108,35 @@ const HistoryPage = () => {
     }
   };
 
+  const handleDelete = async () => {
+    if (!reportToDelete) return;
+    
+    if (deleteConfirmationName !== reportToDelete.name) {
+      setDeleteError('Report name does not match');
+      return;
+    }
+
+    setDeleteLoading(true);
+    setDeleteError(null);
+
+    try {
+      await api.delete(`/api/report/${reportToDelete.id}/`);
+      
+      // Remove from saved reports list
+      setSavedReports(prev => prev.filter(r => r.id !== reportToDelete.id));
+      
+      // Close modal and reset state
+      setShowDeleteModal(false);
+      setReportToDelete(null);
+      setDeleteConfirmationName('');
+    } catch (err) {
+      setDeleteError('Error deleting report. Please try again.');
+      console.error(err);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   const formatDate = (dateString) => {
     const options = { year: 'numeric', month: 'short', day: 'numeric' };
     return new Date(dateString).toLocaleDateString(undefined, options);
@@ -136,21 +148,13 @@ const HistoryPage = () => {
     return 'text-red-500';
   };
 
-  const viewDetails = async (analysisId, isSavedReport = false) => {
+  const viewDetails = async (analysisId) => {
     setLoading(true);
     setError(null);
     
     try {
-      let response;
-      if (isSavedReport) {
-        // For saved reports, fetch from the saved report endpoint
-        response = await api.get(`/api/report/${analysisId}/`);
-      } else {
-        // For recent analyses, use the analyze endpoint
-        response = await api.post('/api/analyze/', {
-          analysis_id: analysisId
-        });
-      }
+      // Always fetch from the saved report endpoint
+      const response = await api.get(`/api/report/${analysisId}/`);
       
       setSelectedAnalysis(response.data);
       setShowDetails(true);
@@ -162,25 +166,7 @@ const HistoryPage = () => {
     }
   };
 
-  const reanalyze = async (analysisId) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const response = await api.post('/api/analyze/', {
-        analysis_id: analysisId
-      });
-      
-      // Store in localStorage and navigate to results
-      localStorage.setItem('lastAnalysis', JSON.stringify(response.data));
-      navigate('/home');
-    } catch (err) {
-      setError('Error re-analyzing document. Please try again.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Removed reanalyze function
 
   if (showDetails && selectedAnalysis) {
     return (
@@ -217,23 +203,7 @@ const HistoryPage = () => {
           </p>
         </motion.div>
 
-        {/* Tabs */}
-        <div className="flex justify-center mb-8">
-          <div className="inline-flex p-1 bg-muted rounded-lg">
-            <button
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'recent' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-              onClick={() => setActiveTab('recent')}
-            >
-              Recent Analyses
-            </button>
-            <button
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'saved' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-              onClick={() => setActiveTab('saved')}
-            >
-              Saved Reports
-            </button>
-          </div>
-        </div>
+        {/* Tabs - Removed */}
 
         {loading ? (
           <div className="flex justify-center items-center h-64">
@@ -241,223 +211,115 @@ const HistoryPage = () => {
           </div>
         ) : (
           <div>
-            {activeTab === 'recent' && (
-              <div>
-                {history.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {history.map((analysis, index) => (
-                      <motion.div
-                        key={analysis.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.1 }}
-                        className="bg-background border rounded-2xl p-6 hover:shadow-md transition-shadow relative"
-                      >
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <Calendar className="h-4 w-4" />
-                            <span className="text-sm">{formatDate(analysis.created_at)}</span>
-                          </div>
-                          <div className={`text-2xl font-bold ${getMatchScoreColor(analysis.match_score)}`}>
-                            {Math.round(analysis.match_score)}%
-                          </div>
-                        </div>
-                        
-                        <div className="mb-4">
-                          <div className="flex items-center gap-2 mb-2">
-                            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm font-medium">Match Score</span>
-                          </div>
-                          <div className="w-full bg-muted rounded-full h-2">
-                            <div
-                              className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full"
-                              style={{ width: `${analysis.match_score}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                        
-                        <div className="mb-4">
-                          <div className="flex items-center gap-2 mb-2">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm font-medium">Missing Skills</span>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {analysis.missing_skills.slice(0, 3).map((skill, idx) => (
-                              <span
-                                key={idx}
-                                className="px-2 py-1 bg-muted rounded-md text-xs"
-                              >
-                                {skill}
-                              </span>
-                            ))}
-                            {analysis.missing_skills.length > 3 && (
-                              <span className="px-2 py-1 bg-muted rounded-md text-xs">
-                                +{analysis.missing_skills.length - 3} more
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center justify-between pt-4 border-t">
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <TrendingUp className="h-4 w-4" />
-                            <span className="text-sm">Analysis #{analysis.id}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => {
-                                setSelectedForSave(analysis);
-                                setShowSaveModal(true);
-                              }}
-                              className="flex items-center gap-1 text-sm text-primary hover:underline"
-                            >
-                              <Save className="h-4 w-4" />
-                              Save
-                            </button>
-                            <button
-                              onClick={() => viewDetails(analysis.id)}
-                              className="flex items-center gap-1 text-sm text-primary hover:underline"
-                            >
-                              <Eye className="h-4 w-4" />
-                              View Details
-                            </button>
-                            <button
-                              onClick={() => reanalyze(analysis.id)}
-                              className="flex items-center gap-1 text-sm text-primary hover:underline"
-                            >
-                              <ArrowRight className="h-4 w-4" />
-                              Reanalyze
-                            </button>
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <div className="bg-muted rounded-full p-4 w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                      <FileText className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                    <h3 className="text-xl font-semibold mb-2">No Analysis History</h3>
-                    <p className="text-muted-foreground mb-6">
-                      You haven't analyzed any resumes or job descriptions yet.
-                    </p>
-                    <button
-                      onClick={() => window.location.href = '/home'}
-                      className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-lg hover:opacity-90 transition-opacity"
-                    >
-                      Analyze Your First Resume
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'saved' && (
-              <div>
-                <div className="flex items-center gap-2 mb-6">
-                  <div className="relative flex-1">
-                    <input
-                      type="text"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      placeholder="Search by report name..."
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none"
-                    />
-                    <Search className="h-4 w-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
-                  </div>
-                  <button
-                    onClick={searchSavedReports}
-                    disabled={searchLoading || !searchTerm.trim()}
-                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50"
-                  >
-                    {searchLoading ? 'Searching...' : 'Search'}
-                  </button>
-                  <button
-                    onClick={() => { setSearchTerm(''); setSavedReports([]); setHasSearched(false); }}
-                    className="px-4 py-2 bg-muted rounded-lg hover:bg-muted/80"
-                  >
-                    Reset
-                  </button>
+            <div>
+              <div className="flex items-center gap-2 mb-6">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search by report name..."
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none"
+                  />
+                  <Search className="h-4 w-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
                 </div>
-                {hasSearched && savedReports.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {savedReports.map((report, index) => (
-                      <motion.div
-                        key={report.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.1 }}
-                        className="bg-background border rounded-2xl p-6 hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <Calendar className="h-4 w-4" />
-                            <span className="text-sm">{formatDate(report.created_at)}</span>
-                          </div>
-                          <div className={`text-2xl font-bold ${getMatchScoreColor(report.match_score)}`}>
-                            {Math.round(report.match_score)}%
-                          </div>
-                        </div>
-                        
-                        <div className="mb-4">
-                          <div className="flex items-center gap-2 mb-2">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm font-medium">Name</span>
-                          </div>
-                          <h3 className="text-lg font-semibold truncate">{report.name}</h3>
-                        </div>
-                        
-                        <div className="mb-4">
-                          <div className="flex items-center gap-2 mb-2">
-                            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm font-medium">Match Score</span>
-                          </div>
-                          <div className="w-full bg-muted rounded-full h-2">
-                            <div
-                              className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full"
-                              style={{ width: `${report.match_score}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center justify-between pt-4 border-t">
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <TrendingUp className="h-4 w-4" />
-                            <span className="text-sm">Report #{report.id}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => viewDetails(report.id, true)}
-                              className="flex items-center gap-1 text-sm text-primary hover:underline"
-                            >
-                              <Eye className="h-4 w-4" />
-                              View Details
-                            </button>
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <div className="bg-muted rounded-full p-4 w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                      <Search className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                    <h3 className="text-xl font-semibold mb-2">Search saved reports by name</h3>
-                    <p className="text-muted-foreground mb-6">
-                      Enter a report name above to view saved results.
-                    </p>
-                    <button
-                      onClick={() => setActiveTab('recent')}
-                      className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-lg hover:opacity-90 transition-opacity"
-                    >
-                      View Recent Analyses
-                    </button>
-                  </div>
-                )}
+                <button
+                  onClick={searchSavedReports}
+                  disabled={searchLoading || !searchTerm.trim()}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50"
+                >
+                  {searchLoading ? 'Searching...' : 'Search'}
+                </button>
+                <button
+                  onClick={() => { setSearchTerm(''); setSavedReports([]); setHasSearched(false); }}
+                  className="px-4 py-2 bg-muted rounded-lg hover:bg-muted/80"
+                >
+                  Reset
+                </button>
               </div>
-            )}
+              {hasSearched && savedReports.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {savedReports.map((report, index) => (
+                    <motion.div
+                      key={report.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                      className="bg-background border rounded-2xl p-6 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Calendar className="h-4 w-4" />
+                          <span className="text-sm">{formatDate(report.created_at)}</span>
+                        </div>
+                        <div className={`text-2xl font-bold ${getMatchScoreColor(report.match_score)}`}>
+                          {Math.round(report.match_score)}%
+                        </div>
+                      </div>
+                      
+                      <div className="mb-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium">Name</span>
+                        </div>
+                        <h3 className="text-lg font-semibold truncate">{report.name}</h3>
+                      </div>
+                      
+                      <div className="mb-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium">Match Score</span>
+                        </div>
+                        <div className="w-full bg-muted rounded-full h-2">
+                          <div
+                            className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full"
+                            style={{ width: `${report.match_score}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between pt-4 border-t">
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <TrendingUp className="h-4 w-4" />
+                          <span className="text-sm">Report #{report.id}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              setReportToDelete(report);
+                              setShowDeleteModal(true);
+                              setDeleteConfirmationName('');
+                              setDeleteError(null);
+                            }}
+                            className="flex items-center gap-1 text-sm text-red-500 hover:underline"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Delete
+                          </button>
+                          <button
+                            onClick={() => viewDetails(report.id)}
+                            className="flex items-center gap-1 text-sm text-primary hover:underline"
+                          >
+                            <Eye className="h-4 w-4" />
+                            View Details
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="bg-muted rounded-full p-4 w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                    <Search className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">Search saved reports by name</h3>
+                  <p className="text-muted-foreground mb-6">
+                    Enter a report name above to view saved results.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -513,6 +375,75 @@ const HistoryPage = () => {
                     <>
                       <Save className="h-4 w-4" />
                       Save Report
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+        
+        {/* Delete Confirmation Modal */}
+        {showDeleteModal && reportToDelete && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-background rounded-2xl p-6 w-full max-w-md"
+            >
+              <div className="flex items-center gap-3 mb-4 text-red-500">
+                <AlertTriangle className="h-6 w-6" />
+                <h3 className="text-xl font-semibold">Delete Report?</h3>
+              </div>
+              
+              <p className="text-muted-foreground mb-4">
+                This action cannot be undone. To confirm, please type the report name <span className="font-semibold text-foreground">"{reportToDelete.name}"</span> below.
+              </p>
+              
+              <div className="mb-4">
+                <input
+                  type="text"
+                  value={deleteConfirmationName}
+                  onChange={(e) => {
+                    setDeleteConfirmationName(e.target.value);
+                    if (deleteError) setDeleteError(null);
+                  }}
+                  placeholder="Type report name here..."
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  autoFocus
+                />
+              </div>
+              
+              {deleteError && (
+                <div className="text-red-500 text-sm mb-4">{deleteError}</div>
+              )}
+              
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setReportToDelete(null);
+                    setDeleteConfirmationName('');
+                    setDeleteError(null);
+                  }}
+                  className="px-4 py-2 text-muted-foreground hover:bg-muted rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleteLoading || deleteConfirmationName !== reportToDelete.name}
+                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:hover:bg-red-500 flex items-center gap-2"
+                >
+                  {deleteLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4" />
+                      Delete Report
                     </>
                   )}
                 </button>

@@ -8,7 +8,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 import json
 from .models import Resume, Analysis, SavedReport
-from .ml_analysis import ResumeAnalyzer, TextExtractor
+from .ml_analysis import ResumeAnalyzer, TextExtractor, SkillExtractor, YouTubeRecommendationEngine
 from .job_fetcher import fetch_jobs_from_adzuna
 from django.conf import settings
 
@@ -300,10 +300,10 @@ class UploadView(View):
             jd.extracted_text = jd_text
             jd.save()
             
-            # Extract skills
+            # Extract skills using ML analysis module
             print("Extracting skills...")
-            resume_skills = extract_skills(resume_text)
-            jd_skills = extract_skills(jd_text)
+            _, _, resume_skills = SkillExtractor.extract_skills_from_text(resume_text)
+            _, _, jd_skills = SkillExtractor.extract_skills_from_job_description(jd_text)
             
             print(f"Resume skills: {resume_skills}")
             print(f"JD skills: {jd_skills}")
@@ -320,6 +320,11 @@ class UploadView(View):
             
             print(f"Missing skills: {missing_skills}")
             
+            # Get YouTube recommendations using the engine
+            print("Fetching YouTube recommendations...")
+            youtube_engine = YouTubeRecommendationEngine(settings.YOUTUBE_API_KEY)
+            youtube_recommendations = youtube_engine.get_skill_recommendations(missing_skills)
+            
             # Create analysis record
             print("Creating analysis record...")
             analysis = Analysis.objects.create(
@@ -327,7 +332,8 @@ class UploadView(View):
                 jd=jd,
                 match_score=match_score,
                 missing_skills=missing_skills,
-                extracted_skills=resume_skills
+                extracted_skills=resume_skills,
+                youtube_recommendations=youtube_recommendations
             )
             
             print(f"Analysis created with ID: {analysis.id}")
@@ -343,7 +349,8 @@ class UploadView(View):
                 'job_skills': jd_skills,
                 'missing_skills': missing_skills,
                 'resume_keyword_freq': {},
-                'jd_keyword_freq': {}
+                'jd_keyword_freq': {},
+                'youtube_recommendations': youtube_recommendations
             })
         except Exception as e:
             print(f"Error in upload view: {str(e)}")
@@ -370,9 +377,11 @@ class AnalyzeView(View):
             # Calculate basic similarity using the original method
             basic_similarity = calculate_similarity(analysis.resume.extracted_text, analysis.jd.extracted_text)
             
-            # Extract skills using basic method
-            resume_skills = extract_skills(analysis.resume.extracted_text)
-            jd_skills = extract_skills(analysis.jd.extracted_text)
+            # Extract skills using ML analysis module
+            _, _, resume_skills = SkillExtractor.extract_skills_from_text(analysis.resume.extracted_text)
+            _, _, jd_skills_list = SkillExtractor.extract_skills_from_job_description(analysis.jd.extracted_text)
+            jd_skills = jd_skills_list
+            
             missing_skills = get_missing_skills(resume_skills, jd_skills)
             
             # Calculate a more meaningful overall score
@@ -388,6 +397,11 @@ class AnalyzeView(View):
             # Combine similarity and skill match for overall score
             overall_score = (basic_similarity * 0.6 + skill_match_percentage * 0.4)
             
+            # Get YouTube recommendations using the engine
+            print("Fetching YouTube recommendations...")
+            youtube_engine = YouTubeRecommendationEngine(settings.YOUTUBE_API_KEY)
+            youtube_recommendations = youtube_engine.get_skill_recommendations(missing_skills)
+            
             # Update analysis record with basic results
             analysis.match_score = overall_score
             analysis.missing_skills = missing_skills
@@ -398,96 +412,6 @@ class AnalyzeView(View):
             analysis.save()
             
             print(f"Basic analysis completed with overall score: {overall_score}")
-            
-            # Import YouTube API client
-            from googleapiclient.discovery import build
-            import requests
-            
-            # Initialize YouTube API client
-            youtube = build('youtube', 'v3', developerKey=settings.YOUTUBE_API_KEY)
-            
-            # Use the initialized youtube_recommendations and populate if API is available
-            
-            # Get YouTube recommendations for each missing skill
-            for skill in missing_skills[:5]:  # Limit to first 5 missing skills
-                try:
-                    print(f"Fetching YouTube videos for skill: {skill}")
-                    # Search for videos related to the skill
-                    search_response = youtube.search().list(
-                        q=skill,
-                        part='snippet',
-                        type='video',
-                        maxResults=5,
-                        order='relevance'  # Get most relevant videos
-                    ).execute()
-                    
-                    print(f"YouTube search response for {skill}: {len(search_response.get('items', []))} items")
-                    
-                    videos = []
-                    for item in search_response.get('items', []):
-                        video_id = item['id']['videoId']
-                        snippet = item['snippet']
-                        
-                        print(f"Processing video: {snippet['title'][:50]}...")
-                        
-                        # Get video details (duration, view count, etc.)
-                        video_response = youtube.videos().list(
-                            id=video_id,
-                            part='contentDetails,statistics'
-                        ).execute()
-                        
-                        duration = 'N/A'
-                        view_count = 'N/A'
-                        if video_response.get('items'):
-                            video_details = video_response['items'][0]
-                            content_details = video_details.get('contentDetails', {})
-                            stats = video_details.get('statistics', {})
-                            
-                            # Format duration
-                            duration_iso = content_details.get('duration', 'PT0S')
-                            duration = duration_iso.replace('PT', '').replace('H', 'h ').replace('M', 'm ').replace('S', 's')
-                            
-                            # Format view count
-                            view_count = stats.get('viewCount', '0')
-                            view_count = format_view_count(view_count)
-                        
-                        # Get highest quality thumbnail available
-                        thumbnail_url = snippet.get('thumbnails', {}).get('high', {}).get('url')
-                        if not thumbnail_url:
-                            thumbnail_url = snippet.get('thumbnails', {}).get('medium', {}).get('url')
-                        if not thumbnail_url:
-                            thumbnail_url = snippet.get('thumbnails', {}).get('default', {}).get('url')
-                        
-                        videos.append({
-                            'title': snippet['title'],
-                            'url': f'https://www.youtube.com/watch?v={video_id}',
-                            'thumbnail': thumbnail_url,
-                            'duration': duration,
-                            'views': view_count,
-                            'channel': snippet['channelTitle'],
-                            'description': snippet['description'][:200] + '...' if len(snippet['description']) > 200 else snippet['description']
-                        })
-                        
-                    youtube_recommendations[skill] = videos
-                    
-                    print(f"Successfully added {len(videos)} videos for skill {skill}")
-                    
-                except Exception as e:
-                    print(f"Error fetching YouTube videos for skill {skill}: {str(e)}")
-                    import traceback
-                    traceback.print_exc()
-                    # Fallback to generic recommendation if API call fails
-                    youtube_recommendations[skill] = [
-                        {
-                            'title': f'{skill} - Complete Tutorial',
-                            'url': 'https://www.youtube.com/results?search_query=' + skill.replace(' ', '+'),
-                            'thumbnail': 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg',
-                            'duration': 'N/A',
-                            'views': 'N/A',
-                            'channel': 'Various',
-                            'description': f'Learning resources for {skill} skill development'
-                        }
-                    ]
             
             # Return basic results quickly
             return JsonResponse({
@@ -1105,6 +1029,17 @@ class ReportDetailView(View):
             print(f"Error in ReportDetailView: {str(e)}")
             import traceback
             traceback.print_exc()
+            return JsonResponse({'error': str(e)}, status=500)
+
+    def delete(self, request, report_id):
+        try:
+            saved_report = SavedReport.objects.get(id=report_id)
+            saved_report.delete()
+            return JsonResponse({'message': 'Report deleted successfully'}, status=200)
+        except SavedReport.DoesNotExist:
+            return JsonResponse({'error': 'Report not found'}, status=404)
+        except Exception as e:
+            print(f"Error deleting report: {str(e)}")
             return JsonResponse({'error': str(e)}, status=500)
 
 

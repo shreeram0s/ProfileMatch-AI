@@ -368,6 +368,290 @@ class YouTubeRecommendationEngine:
                     'skill': 'javascript'
                 }
             ],
+            'java': [
+                {
+                    'video_id': 'eIrMbAQWlgI',
+                    'title': 'Java Tutorial for Beginners',
+                    'url': 'https://www.youtube.com/watch?v=eIrMbAQWlgI',
+                    'thumbnail': 'https://i.ytimg.com/vi/eIrMbAQWlgI/hqdefault.jpg',
+                    'channel': 'Programming with Mosh',
+                    'description': 'Learn Java 8 and object oriented programming with this complete Java tutorial for beginners.',
+                    'skill': 'java'
+                },
+                {
+                    'video_id': 'xk4_1vDrzzo',
+                    'title': 'Java Full Course for free',
+                    'url': 'https://www.youtube.com/watch?v=xk4_1vDrzzo',
+                    'thumbnail': 'https://i.ytimg.com/vi/xk4_1vDrzzo/hqdefault.jpg',
+                    'channel': 'Bro Code',
+                    'description': 'Java tutorial for beginners full course #java #tutorial #beginners',
+                    'skill': 'java'
+                },
+                {
+                    'video_id': 'A74TOX803D0',
+                    'title': 'Java Full Course for Beginners',
+                    'url': 'https://www.youtube.com/watch?v=A74TOX803D0',
+                    'thumbnail': 'https://i.ytimg.com/vi/A74TOX803D0/hqdefault.jpg',
+                    'channel': 'Amigoscode',
+                    'description': 'Learn Java programming from scratch with this comprehensive course.',
+                    'skill': 'java'
+                }
+            ],
+            'c++': [
+                {
+                    'video_id': '8jLOx1hD3_o',
+                    'title': 'C++ Programming Course - Beginner to Advanced',
+                    'url': 'https://www.youtube.com/watch?v=8jLOx1hD3_o',
+                    'thumbnail': 'https://i.ytimg.com/vi/8jLOx1hD3_o/hqdefault.jpg',
+                    'channel': 'freeCodeCamp.org',
+                    'description': 'Learn C++ programming from scratch in this full course.',
+                    'skill': 'c++'
+                },
+                {
+                    'video_id': 'ZzaPdXTrSb8',
+                    'title': 'C++ Tutorial for Beginners - Learn C++ in 1 Hour',
+                    'url': 'https://www.youtube.com/watch?v=ZzaPdXTrSb8',
+                    'thumbnail': 'https://i.ytimg.com/vi/ZzaPdXTrSb8/hqdefault.jpg',
+                    'channel': 'Programming with Mosh',
+                    'description': 'C++ tutorial for beginners. Learn C++ programming language basics in one hour.',
+                    'skill': 'c++'
+                }
+            ],
+            'c#': [
+                {
+                    'video_id': 'GhQdlIFylQ8',
+                    'title': 'C# Full Course for free',
+                    'url': 'https://www.youtube.com/watch?v=GhQdlIFylQ8',
+                    'thumbnail': 'https://i.ytimg.com/vi/GhQdlIFylQ8/hqdefault.jpg',
+                    'channel': 'Bro Code',
+                    'description': 'C# tutorial for beginners full course',
+                    'skill': 'c#'
+                },
+                {
+                    'video_id': 'gfkTfcpWqAY',
+                    'title': 'C# Tutorial For Beginners - Learn C# Basics in 1 Hour',
+                    'url': 'https://www.youtube.com/watch?v=gfkTfcpWqAY',
+                    'thumbnail': 'https://i.ytimg.com/vi/gfkTfcpWqAY/hqdefault.jpg',
+                    'channel': 'Programming with Mosh',
+                    'description': 'C# tutorial for beginners. Learn C# and .NET basics.',
+                    'skill': 'c#'
+                }
+            ],
+            'sql': [
+                {
+                    'video_id': '7S_tz1z_5bA',
+                    'title': 'SQL Tutorial - Full Database Course for Beginners',
+                    'url': 'https://www.youtube.com/watch?v=7S_tz1z_5bA',
+                    'thumbnail': 'https://i.ytimg.com/vi/7S_tz1z_5bA/hqdefault.jpg',
+                    'channel': 'Programming with Mosh',
+                    'description': 'Learn SQL from scratch in this full course for beginners.',
+                    'skill': 'sql'
+                },
+                {
+                    'video_id': 'HXV3zeQKqGY',
+                    'title': 'SQL Tutorial - Full Course for Beginners',
+                    'url': 'https://www.youtube.com/watch?v=HXV3zeQKqGY',
+                    'thumbnail': 'https://i.ytimg.com/vi/HXV3zeQKqGY/hqdefault.jpg',
+                    'channel': 'freeCodeCamp.org',
+                    'description': 'Learn SQL in this full course for beginners.',
+                    'skill': 'sql'
+                }
+            ],
+            'html': [
+                {
+                    'video_id': 'kUMe1FH4CHE',
+                    'title': 'HTML Full Course - Build a Website Tutorial',
+                    'url': 'https://www.youtube.com/watch?v=kUMe1FH4CHE',
+                    'thumbnail': 'https://i.ytimg.com/vi/kUMe1FH4CHE/hqdefault.jpg',
+                    'channel': 'freeCodeCamp.org',
+                    'description': 'Learn HTML in this full course for beginners.',
+                    'skill': 'html'
+                },
+                {
+                    'video_id': 'qz0aGYrrlhU',
+                    'title': 'HTML Tutorial for Beginners: HTML Crash Course',
+                    'url': 'https://www.youtube.com/watch?v=qz0aGYrrlhU',
+                    'thumbnail': 'https://i.ytimg.com/vi/qz0aGYrrlhU/hqdefault.jpg',
+                    'channel': 'Programming with Mosh',
+                    'description': 'HTML tutorial for beginners. Learn HTML basics.',
+                    'skill': 'html'
+                }
+            ],
+            'css': [
+                {
+                    'video_id': '1Rs2ND1ryYc',
+                    'title': 'CSS Tutorial - Zero to Hero (Complete Course)',
+                    'url': 'https://www.youtube.com/watch?v=1Rs2ND1ryYc',
+                    'thumbnail': 'https://i.ytimg.com/vi/1Rs2ND1ryYc/hqdefault.jpg',
+                    'channel': 'freeCodeCamp.org',
+                    'description': 'Learn CSS in this full course for beginners.',
+                    'skill': 'css'
+                },
+                {
+                    'video_id': 'G3e-cpL7ofc',
+                    'title': 'HTML & CSS Full Course - Beginner to Pro',
+                    'url': 'https://www.youtube.com/watch?v=G3e-cpL7ofc',
+                    'thumbnail': 'https://i.ytimg.com/vi/G3e-cpL7ofc/hqdefault.jpg',
+                    'channel': 'SuperSimpleDev',
+                    'description': 'HTML and CSS tutorial for beginners.',
+                    'skill': 'css'
+                }
+            ],
+            'docker': [
+                {
+                    'video_id': 'fqMOX6JJhGo',
+                    'title': 'Docker - Beginner\'s Course',
+                    'url': 'https://www.youtube.com/watch?v=fqMOX6JJhGo',
+                    'thumbnail': 'https://i.ytimg.com/vi/fqMOX6JJhGo/hqdefault.jpg',
+                    'channel': 'freeCodeCamp.org',
+                    'description': 'Learn Docker in this full course for beginners.',
+                    'skill': 'docker'
+                },
+                {
+                    'video_id': 'pTFZFxd4hOI',
+                    'title': 'Docker Tutorial for Beginners',
+                    'url': 'https://www.youtube.com/watch?v=pTFZFxd4hOI',
+                    'thumbnail': 'https://i.ytimg.com/vi/pTFZFxd4hOI/hqdefault.jpg',
+                    'channel': 'Programming with Mosh',
+                    'description': 'Docker tutorial for beginners. Learn Docker basics.',
+                    'skill': 'docker'
+                }
+            ],
+            'aws': [
+                {
+                    'video_id': '3hLmDS179YE',
+                    'title': 'AWS Cloud Practitioner - Essentials',
+                    'url': 'https://www.youtube.com/watch?v=3hLmDS179YE',
+                    'thumbnail': 'https://i.ytimg.com/vi/3hLmDS179YE/hqdefault.jpg',
+                    'channel': 'freeCodeCamp.org',
+                    'description': 'Learn AWS Cloud Practitioner basics.',
+                    'skill': 'aws'
+                },
+                {
+                    'video_id': 'k1RI5locZE4',
+                    'title': 'AWS Basics for Beginners - Full Course',
+                    'url': 'https://www.youtube.com/watch?v=k1RI5locZE4',
+                    'thumbnail': 'https://i.ytimg.com/vi/k1RI5locZE4/hqdefault.jpg',
+                    'channel': 'Simplilearn',
+                    'description': 'Learn AWS basics in this full course.',
+                    'skill': 'aws'
+                }
+            ],
+            'git': [
+                {
+                    'video_id': 'RGOj5yH7evk',
+                    'title': 'Git and GitHub for Beginners - Crash Course',
+                    'url': 'https://www.youtube.com/watch?v=RGOj5yH7evk',
+                    'thumbnail': 'https://i.ytimg.com/vi/RGOj5yH7evk/hqdefault.jpg',
+                    'channel': 'freeCodeCamp.org',
+                    'description': 'Learn Git and GitHub in this full course.',
+                    'skill': 'git'
+                },
+                {
+                    'video_id': '8JJ101D3knE',
+                    'title': 'Git Tutorial for Beginners: Learn Git in 1 Hour',
+                    'url': 'https://www.youtube.com/watch?v=8JJ101D3knE',
+                    'thumbnail': 'https://i.ytimg.com/vi/8JJ101D3knE/hqdefault.jpg',
+                    'channel': 'Programming with Mosh',
+                    'description': 'Git tutorial for beginners. Learn Git basics.',
+                    'skill': 'git'
+                }
+            ],
+            'typescript': [
+                {
+                    'video_id': '30LWjhZzg50',
+                    'title': 'TypeScript - The Basics',
+                    'url': 'https://www.youtube.com/watch?v=30LWjhZzg50',
+                    'thumbnail': 'https://i.ytimg.com/vi/30LWjhZzg50/hqdefault.jpg',
+                    'channel': 'Fireship',
+                    'description': 'Learn TypeScript basics in this quick tutorial.',
+                    'skill': 'typescript'
+                },
+                {
+                    'video_id': 'd56mG7DezGs',
+                    'title': 'TypeScript Tutorial for Beginners',
+                    'url': 'https://www.youtube.com/watch?v=d56mG7DezGs',
+                    'thumbnail': 'https://i.ytimg.com/vi/d56mG7DezGs/hqdefault.jpg',
+                    'channel': 'Programming with Mosh',
+                    'description': 'TypeScript tutorial for beginners.',
+                    'skill': 'typescript'
+                }
+            ],
+            'angular': [
+                {
+                    'video_id': '3qBXWUpoPHo',
+                    'title': 'Angular Full Course - Beginner to Pro',
+                    'url': 'https://www.youtube.com/watch?v=3qBXWUpoPHo',
+                    'thumbnail': 'https://i.ytimg.com/vi/3qBXWUpoPHo/hqdefault.jpg',
+                    'channel': 'freeCodeCamp.org',
+                    'description': 'Learn Angular in this full course.',
+                    'skill': 'angular'
+                },
+                {
+                    'video_id': 'k5E2AVpwsko',
+                    'title': 'Angular Tutorial for Beginners: Learn Angular & TypeScript',
+                    'url': 'https://www.youtube.com/watch?v=k5E2AVpwsko',
+                    'thumbnail': 'https://i.ytimg.com/vi/k5E2AVpwsko/hqdefault.jpg',
+                    'channel': 'Programming with Mosh',
+                    'description': 'Angular tutorial for beginners.',
+                    'skill': 'angular'
+                }
+            ],
+            'vue': [
+                {
+                    'video_id': 'FXpIoQ_rT_c',
+                    'title': 'Vue.js 3 - The Full Course',
+                    'url': 'https://www.youtube.com/watch?v=FXpIoQ_rT_c',
+                    'thumbnail': 'https://i.ytimg.com/vi/FXpIoQ_rT_c/hqdefault.jpg',
+                    'channel': 'freeCodeCamp.org',
+                    'description': 'Learn Vue.js 3 in this full course.',
+                    'skill': 'vue'
+                }
+            ],
+            'mongodb': [
+                {
+                    'video_id': 'ofme2o29ngU',
+                    'title': 'MongoDB Tutorial for Beginners',
+                    'url': 'https://www.youtube.com/watch?v=ofme2o29ngU',
+                    'thumbnail': 'https://i.ytimg.com/vi/ofme2o29ngU/hqdefault.jpg',
+                    'channel': 'Programming with Mosh',
+                    'description': 'MongoDB tutorial for beginners.',
+                    'skill': 'mongodb'
+                }
+            ],
+            'postgresql': [
+                {
+                    'video_id': 'qw--VYLpxG4',
+                    'title': 'PostgreSQL Tutorial for Beginners',
+                    'url': 'https://www.youtube.com/watch?v=qw--VYLpxG4',
+                    'thumbnail': 'https://i.ytimg.com/vi/qw--VYLpxG4/hqdefault.jpg',
+                    'channel': 'freeCodeCamp.org',
+                    'description': 'Learn PostgreSQL in this full course.',
+                    'skill': 'postgresql'
+                }
+            ],
+            'flask': [
+                {
+                    'video_id': 'Z1RJmh_OqeA',
+                    'title': 'Python Flask Tutorial',
+                    'url': 'https://www.youtube.com/watch?v=Z1RJmh_OqeA',
+                    'thumbnail': 'https://i.ytimg.com/vi/Z1RJmh_OqeA/hqdefault.jpg',
+                    'channel': 'freeCodeCamp.org',
+                    'description': 'Learn Flask in this full course.',
+                    'skill': 'flask'
+                }
+            ],
+            'spring': [
+                {
+                    'video_id': 'If1Lw4pL0d4',
+                    'title': 'Spring Boot Tutorial for Beginners',
+                    'url': 'https://www.youtube.com/watch?v=If1Lw4pL0d4',
+                    'thumbnail': 'https://i.ytimg.com/vi/If1Lw4pL0d4/hqdefault.jpg',
+                    'channel': 'Telusko',
+                    'description': 'Learn Spring Boot in this full course.',
+                    'skill': 'spring'
+                }
+            ],
             'react': [
                 {
                     'video_id': 'bMknfKXIFA8',
@@ -476,19 +760,8 @@ class YouTubeRecommendationEngine:
                         break
                 
                 if not matched:
-                    # Generic programming tutorial
-                    recommendations[skill] = [
-                        {
-                            'video_id': 'zOjov-2OZ0E',
-                            'title': f'Learn {skill.title()} - Programming Tutorial',
-                            'url': 'https://www.youtube.com/watch?v=zOjov-2OZ0E',
-                            'thumbnail': 'https://i.ytimg.com/vi/zOjov-2OZ0E/hqdefault.jpg',
-                            'channel': 'freeCodeCamp.org',
-                            'description': f'Complete tutorial to learn {skill}.',
-                            'skill': skill
-                        }
-                    ]
-                    print(f"  ℹ️  Added generic fallback video for {skill}")
+                    # No generic fallback - only specific videos allowed
+                    print(f"  ℹ️  No specific fallback videos found for {skill}")
         
         return recommendations
     
