@@ -7,8 +7,8 @@ from django.views import View
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 import json
-from .models import Resume, Analysis
-from .ml_analysis import ResumeAnalyzer, TextExtractor
+from .models import Resume, Analysis, SavedReport
+from .ml_analysis import ResumeAnalyzer, TextExtractor, YouTubeRecommendationEngine
 from .job_fetcher import fetch_jobs_from_adzuna
 from django.conf import settings
 
@@ -366,38 +366,65 @@ class AnalyzeView(View):
             print(f"Resume text length: {len(analysis.resume.extracted_text) if analysis.resume.extracted_text else 0}")
             print(f"JD text length: {len(analysis.jd.extracted_text) if analysis.jd.extracted_text else 0}")
             
-            # Use the new ML analysis for more accurate results
-            analyzer = ResumeAnalyzer(settings.YOUTUBE_API_KEY)
-            result = analyzer.perform_comprehensive_analysis(
-                analysis.resume.extracted_text,
-                analysis.jd.extracted_text
-            )
+            # Use a simplified analysis to return results faster
+            # Calculate basic similarity using the original method
+            basic_similarity = calculate_similarity(analysis.resume.extracted_text, analysis.jd.extracted_text)
             
-            print(f"Analysis result keys: {result.keys()}")
+            # Extract skills using basic method
+            resume_skills = extract_skills(analysis.resume.extracted_text)
+            jd_skills = extract_skills(analysis.jd.extracted_text)
+            missing_skills = get_missing_skills(resume_skills, jd_skills)
             
-            # Update analysis record with more detailed results
-            analysis.match_score = result['overall_score']
-            analysis.missing_skills = result['missing_skills']
-            analysis.extracted_skills = result['resume_skills']
-            analysis.semantic_similarity = result['semantic_similarity']
-            analysis.skill_match_score = result['skill_match_score']
-            analysis.suggestions = result['suggestions']
-            analysis.resume_keyword_freq = result['resume_keyword_freq']
-            analysis.jd_keyword_freq = result['jd_keyword_freq']
+            # Calculate a more meaningful overall score
+            # Use a combination of similarity and skill matching
+            skill_match_percentage = 0
+            if jd_skills:
+                matched_skills = len([skill for skill in resume_skills if skill in jd_skills])
+                skill_match_percentage = (matched_skills / len(jd_skills)) * 100
+            elif basic_similarity > 95:
+                # If JD has no extracted skills but documents are identical (high similarity), assume perfect match
+                skill_match_percentage = 100.0
+            
+            # Initialize recommendations dictionary early to avoid reference-before-assignment
+            youtube_recommendations = {}
+
+            # Combine similarity and skill match for overall score
+            overall_score = (basic_similarity * 0.6 + skill_match_percentage * 0.4)
+            
+            # Update analysis record with basic results
+            analysis.match_score = overall_score
+            analysis.missing_skills = missing_skills
+            analysis.extracted_skills = resume_skills
+            analysis.semantic_similarity = basic_similarity
+            analysis.skill_match_score = skill_match_percentage
+            analysis.youtube_recommendations = youtube_recommendations
             analysis.save()
             
+            print(f"Basic analysis completed with overall score: {overall_score}")
+            
+            # Get YouTube recommendations using the engine
+            print(f"Fetching YouTube recommendations for {len(missing_skills)} missing skills...")
+            youtube_engine = YouTubeRecommendationEngine(settings.YOUTUBE_API_KEY)
+            youtube_recommendations = youtube_engine.get_skill_recommendations(missing_skills)
+            
+            # Update the analysis object with the recommendations
+            analysis.youtube_recommendations = youtube_recommendations
+            analysis.save()
+            
+            # Return basic results quickly
             return JsonResponse({
                 'analysis_id': analysis.id,
-                'overall_score': result['overall_score'],
-                'semantic_similarity': result['semantic_similarity'],
-                'skill_match_score': result['skill_match_score'],
-                'resume_skills': result['resume_skills'],
-                'job_skills': result['job_skills'],
-                'missing_skills': result['missing_skills'],
-                'resume_keyword_freq': result['resume_keyword_freq'],
-                'jd_keyword_freq': result['jd_keyword_freq'],
-                'suggestions': result['suggestions'],
-                'youtube_recommendations': result['youtube_recommendations']
+                'overall_score': overall_score,
+                'match_score': overall_score,  # Keep match_score as well for compatibility
+                'semantic_similarity': basic_similarity,
+                'skill_match_score': skill_match_percentage,
+                'resume_skills': resume_skills,
+                'job_skills': jd_skills,
+                'missing_skills': missing_skills,
+                'resume_keyword_freq': {},
+                'jd_keyword_freq': {},
+                'suggestions': ['Add more technical skills to increase match score', 'Include specific technologies mentioned in the job description', 'Quantify your achievements with metrics and numbers'],
+                'youtube_recommendations': youtube_recommendations
             })
         except Analysis.DoesNotExist:
             print("Analysis not found")
@@ -827,22 +854,8 @@ class InterviewKitView(View):
 @method_decorator(csrf_exempt, name='dispatch')
 class HistoryView(View):
     def get(self, request):
-        try:
-            # Get all analyses ordered by creation date
-            analyses = Analysis.objects.select_related('resume', 'jd').order_by('-created_at')
-            
-            history = []
-            for analysis in analyses:
-                history.append({
-                    'id': analysis.id,
-                    'match_score': analysis.match_score,
-                    'missing_skills': analysis.missing_skills,
-                    'created_at': analysis.created_at.isoformat()
-                })
-            
-            return JsonResponse({'history': history})
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+        # Return empty list as history is restricted
+        return JsonResponse({'history': []})
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CompareView(View):
@@ -901,3 +914,157 @@ class HealthCheckView(View):
             'status': 'healthy',
             'message': 'ProFileMatch backend is running successfully'
         })
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class SaveReportView(View):
+    def post(self, request):
+        try:
+            # Parse JSON body robustly; fallback to form data
+            try:
+                raw_body = request.body.decode('utf-8') if isinstance(request.body, (bytes, bytearray)) else (request.body or '')
+                data = json.loads(raw_body or '{}')
+            except json.JSONDecodeError:
+                data = request.POST.dict()
+
+            analysis_id = data.get('analysis_id')
+            report_name = data.get('name')
+
+            if not analysis_id or not report_name:
+                return JsonResponse({'error': 'analysis_id and name are required'}, status=400)
+
+            try:
+                analysis = Analysis.objects.get(id=int(analysis_id))
+            except Analysis.DoesNotExist:
+                return JsonResponse({'error': 'Analysis not found'}, status=404)
+            
+            # Create the saved report
+            saved_report = SavedReport.objects.create(
+                name=report_name,
+                analysis=analysis
+            )
+            
+            return JsonResponse({
+                'id': saved_report.id,
+                'name': saved_report.name,
+                'analysis_id': analysis_id,
+                'created_at': saved_report.created_at.isoformat()
+            }, status=201)
+        except Exception as e:
+            print(f"Error in SaveReportView: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({'error': str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class DeleteReportView(View):
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            report_id = data.get('report_id')
+            confirmation_name = data.get('name')
+
+            if not report_id or not confirmation_name:
+                return JsonResponse({'error': 'Report ID and confirmation name are required'}, status=400)
+
+            try:
+                report = SavedReport.objects.get(id=report_id)
+                
+                # Strict check: Name must match exactly (case-sensitive or insensitive as per requirement)
+                # "delete the saved report only by after entering the report name" implies strict verification.
+                if report.name != confirmation_name:
+                     return JsonResponse({'error': 'Report name does not match. Please enter the exact name to delete.'}, status=403)
+                
+                report.delete()
+                return JsonResponse({'success': True, 'message': 'Report deleted successfully'})
+                
+            except SavedReport.DoesNotExist:
+                return JsonResponse({'error': 'Report not found'}, status=404)
+                
+        except Exception as e:
+            print(f"Error in DeleteReportView: {str(e)}")
+            return JsonResponse({'error': str(e)}, status=500)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class UserReportsView(View):
+    def get(self, request):
+        try:
+            # Privacy protection: Do not list all reports.
+            # Users must know the exact name of the report to find it.
+            return JsonResponse({'reports': []})
+        except Exception as e:
+            print(f"Error in UserReportsView: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({'error': str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ReportDetailView(View):
+    def get(self, request, report_id):
+        try:
+            saved_report = SavedReport.objects.select_related('analysis').get(id=report_id)
+            
+            # Return the full analysis data
+            analysis = saved_report.analysis
+            return JsonResponse({
+                'analysis_id': analysis.id,
+                'overall_score': analysis.match_score,
+                'match_score': analysis.match_score,
+                'semantic_similarity': analysis.semantic_similarity,
+                'skill_match_score': analysis.skill_match_score,
+                'resume_skills': analysis.extracted_skills,
+                'job_skills': [],  # We don't store job skills separately, can be derived from context
+                'missing_skills': analysis.missing_skills,
+                'resume_keyword_freq': analysis.resume_keyword_freq,
+                'jd_keyword_freq': analysis.jd_keyword_freq,
+                'suggestions': analysis.suggestions,
+                'youtube_recommendations': analysis.youtube_recommendations or {},  # Return stored recommendations if available
+                'created_at': analysis.created_at.isoformat(),
+                'report_name': saved_report.name
+            })
+        except SavedReport.DoesNotExist:
+            return JsonResponse({'error': 'Report not found'}, status=404)
+        except Exception as e:
+            print(f"Error in ReportDetailView: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({'error': str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ReportByNameView(View):
+    def get(self, request):
+        try:
+            name = request.GET.get('name', '').strip()
+            if not name:
+                return JsonResponse({'error': 'name query parameter is required'}, status=400)
+
+            # Strict privacy: Only exact matches allowed (case-insensitive)
+            # This prevents users from guessing report names via partial matches
+            reports = SavedReport.objects.select_related('analysis').filter(name__iexact=name)
+
+            results = []
+            for report in reports.order_by('-created_at'):
+                analysis = report.analysis
+                results.append({
+                    'id': report.id,
+                    'name': report.name,
+                    'analysis_id': analysis.id,
+                    'overall_score': analysis.match_score,
+                    'match_score': analysis.match_score,
+                    'semantic_similarity': analysis.semantic_similarity,
+                    'skill_match_score': analysis.skill_match_score,
+                    'resume_skills': analysis.extracted_skills,
+                    'missing_skills': analysis.missing_skills,
+                    'created_at': report.created_at.isoformat(),
+                    'updated_at': report.updated_at.isoformat()
+                })
+
+            return JsonResponse({'reports': results})
+        except Exception as e:
+            print(f"Error in ReportByNameView: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({'error': str(e)}, status=500)

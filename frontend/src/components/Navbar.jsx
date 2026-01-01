@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Moon, Sun, Menu, X, GraduationCap, Briefcase, Brain, BarChart3, Lightbulb, Target, FileText } from 'lucide-react';
+import { Moon, Sun, Menu, X, GraduationCap, Briefcase, Brain, BarChart3, Lightbulb, Target, FileText, History } from 'lucide-react';
 import { useTheme } from './theme-provider';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -26,6 +26,7 @@ const Navbar = () => {
   const navItems = [
     { name: 'Home', path: '/home', icon: <GraduationCap className="h-4 w-4" /> },
     { name: 'Dashboard', path: '/dashboard', icon: <BarChart3 className="h-4 w-4" /> },
+    { name: 'History', path: '/history', icon: <History className="h-4 w-4" /> },
     { name: 'Suggestions', path: '/suggestions', icon: <Lightbulb className="h-4 w-4" /> },
     { name: 'Jobs', path: '/jobs', icon: <Briefcase className="h-4 w-4" /> },
     { name: 'Interview Prep', path: '/interview-prep', icon: <Target className="h-4 w-4" /> },

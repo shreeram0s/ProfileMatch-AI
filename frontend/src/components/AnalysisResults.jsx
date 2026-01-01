@@ -477,7 +477,14 @@ const AnalysisResults = ({ analysisData }) => {
                   </div>
                 ))}
                 {analysisData.resume_skills?.filter(skill => analysisData.job_skills?.includes(skill)).length === 0 && (
-                  <p className="text-muted-foreground text-center py-4">No matching skills found</p>
+                  analysisData.semantic_similarity > 95 ? (
+                    <p className="text-green-600 dark:text-green-400 text-center py-4 font-medium flex items-center justify-center gap-2">
+                      <CheckCircle className="h-5 w-5" />
+                      All skills matched (Document Match)
+                    </p>
+                  ) : (
+                    <p className="text-muted-foreground text-center py-4">No matching skills found</p>
+                  )
                 )}
               </div>
             </div>

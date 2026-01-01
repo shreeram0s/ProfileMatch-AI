@@ -26,8 +26,6 @@ wheels/
 MANIFEST
 
 # PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
 
@@ -58,6 +56,8 @@ coverage.xml
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+/media
+/staticfiles
 
 # Flask stuff:
 instance/
@@ -99,76 +99,22 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak
-venv.bak
-
-# Spyder project settings
-.spyderproject
-.spyproject
-
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# Node.js dependencies
+# Node
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Vite build output
+# Frontend Build
 frontend/dist/
-frontend/build/
+frontend/node_modules/
 
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Render database logs
-*.log
-
-# Temporary files
-*.tmp
-*.temp
-
-# Environment variables file
+# Environment
 .env
 .env.local
-.env.production
-.env.development
+.env.*.local
+.DS_Store
 
-# Render deployment files
-render.yaml
-
-# Test files
-test_*.py
-check_*.py
-*_test.py
-
-# Development database
-*.sqlite3
+# IDE
+.vscode/
+.idea/

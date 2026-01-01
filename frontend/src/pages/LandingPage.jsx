@@ -267,7 +267,7 @@ const LandingPage = () => {
                 />
                 <span className="relative flex items-center gap-3">
                   <Rocket className="h-5 w-5" />
-                  Get Started Free
+                  Get Started
                   <motion.div
                     animate={{ x: [0, 5, 0] }}
                     transition={{ duration: 1.5, repeat: Infinity }}

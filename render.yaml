@@ -1,51 +1,44 @@
-services:
-  - type: web
-    name: profilematch-backend
-    env: docker
-    plan: free
-    rootDir: backend
-    dockerfilePath: Dockerfile
-    envVars:
-      - key: SECRET_KEY
-        generateValue: true
-      - key: DEBUG
-        value: "False"
-      - key: ALLOWED_HOSTS
-        value: "projektabackend.onrender.com,profilematch-backend.onrender.com,localhost,127.0.0.1"
-      - key: CORS_ALLOWED_ORIGINS
-        value: "https://profilematch-frontend.onrender.com,https://projektabackend.onrender.com"
-      - key: CORS_ALLOW_ALL_ORIGINS
-        value: "False"
-      - key: DB_NAME
-        value: "magic2"
-      - key: DB_USER
-        value: "magic2_user"
-      - key: DB_PASSWORD
-        value: "UeMppumFYJRDjOFoYzdqszc0Pfo9K6R3"
-      - key: DB_HOST
-        value: "dpg-d43qarbe5dus73a89i0g-a.singapore-postgres.render.com"
-      - key: DB_PORT
-        value: "5432"
-      - key: YOUTUBE_API_KEY
-        value: "AIzaSyCC8YoN1GeLvQXYbOei_ykpoQZELHyD6HY"
-      - key: ADZUNA_APP_ID
-        value: "962974fe"
-      - key: ADZUNA_APP_KEY
-        value: "cb18422dd62921861ad8d4b423942105"
-
-  - type: web
-    name: profilematch-frontend
-    env: static
-    plan: free
-    rootDir: frontend
-    buildCommand: "npm install && npm run build"
-    staticPublishPath: dist
-    envVars:
-      - key: VITE_API_URL
-        value: "https://projektabackend.onrender.com"
-
 databases:
   - name: profilematch-db
     databaseName: profilematch
     user: profilematch
-    plan: free
+
+services:
+  - type: web
+    name: profilematch-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn profilematch.wsgi:application"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.18
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "false"
+      - key: ALLOWED_HOSTS
+        value: "*"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: profilematch-db
+          property: connectionString
+      - key: YOUTUBE_API_KEY
+        sync: false
+      - key: ADZUNA_APP_ID
+        sync: false
+      - key: ADZUNA_APP_KEY
+        sync: false
+
+  - type: static
+    name: profilematch-frontend
+    runtime: node
+    rootDir: frontend
+    buildCommand: "npm install && npm run build"
+    publishDir: "dist"
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: profilematch-backend
+          property: url

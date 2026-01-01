@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 import os
+import dj_database_url
 from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -104,17 +105,10 @@ ASGI_APPLICATION = 'profilematch.asgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DB_NAME', default='magic2'),
-        'USER': config('DB_USER', default='magic2_user'),
-        'PASSWORD': config('DB_PASSWORD', default='UeMppumFYJRDjOFoYzdqszc0Pfo9K6R3'),
-        'HOST': config('DB_HOST', default='dpg-d43qarbe5dus73a89i0g-a.singapore-postgres.render.com'),
-        'PORT': config('DB_PORT', default='5432'),
-        'OPTIONS': {
-            'sslmode': 'require',
-        },
-    }
+    'default': dj_database_url.config(
+        default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
+        conn_max_age=600
+    )
 }
 
 
@@ -154,6 +148,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Create staticfiles directory if it doesn't exist
 os.makedirs(STATIC_ROOT, exist_ok=True)
