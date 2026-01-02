@@ -37,7 +37,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Download NLP models during build
 RUN python -m spacy download en_core_web_sm
 RUN python -c "import nltk; nltk.download('wordnet'); nltk.download('omw-1.4'); nltk.download('punkt'); nltk.download('stopwords')"
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+RUN python -c "import traceback; \
+    try: \
+    from sentence_transformers import SentenceTransformer; \
+    print('Downloading SentenceTransformer model...'); \
+    SentenceTransformer('all-MiniLM-L6-v2'); \
+    print('Model downloaded successfully.'); \
+    except Exception: \
+    traceback.print_exc(); \
+    exit(1)"
 
 # Copy application code
 COPY . .
