@@ -2,6 +2,11 @@ import { useState, useEffect } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
   Tooltip, 
   Legend, 
   ResponsiveContainer, 
@@ -53,6 +58,50 @@ const DashboardPage = () => {
 
   const COLORS = ['#3b82f6', '#ef4444'];
   
+  // Prepare bar chart data for skill frequencies
+  const resumeSkillFreq = analysisData && analysisData.resume_keyword_freq ? 
+    Object.entries(analysisData.resume_keyword_freq)
+      .map(([skill, freq]) => ({ name: skill, frequency: freq }))
+      .sort((a, b) => b.frequency - a.frequency)
+      .slice(0, 10) : [];
+  
+  const jobSkillFreq = analysisData && analysisData.jd_keyword_freq ? 
+    Object.entries(analysisData.jd_keyword_freq)
+      .map(([skill, freq]) => ({ name: skill, frequency: freq }))
+      .sort((a, b) => b.frequency - a.frequency)
+      .slice(0, 10) : [];
+  
+  // Combine data for comparison chart
+  const combinedSkillData = [];
+  if (analysisData) {
+    const allSkills = [...new Set([
+      ...Object.keys(analysisData.resume_keyword_freq || {}), 
+      ...Object.keys(analysisData.jd_keyword_freq || {})
+    ])];
+    
+    allSkills.forEach(skill => {
+      combinedSkillData.push({
+        name: skill,
+        resume: analysisData.resume_keyword_freq?.[skill] || 0,
+        job: analysisData.jd_keyword_freq?.[skill] || 0
+      });
+    });
+  }
+  
+  // Sort by job frequency and take top 10
+  const sortedCombinedData = combinedSkillData
+    .sort((a, b) => b.job - a.job)
+    .slice(0, 10);
+  
+  // Prepare scatter plot data for skill comparison
+  const scatterData = analysisData && analysisData.resume_skills ? 
+    analysisData.resume_skills.map((skill, index) => ({
+      x: index,
+      y: analysisData.resume_keyword_freq?.[skill] || 0,
+      z: analysisData.job_skills?.includes(skill) ? 200 : 100,
+      skill: skill
+    })) : [];
+
   // Helper function to safely get a rounded percentage value
   const getRoundedPercentage = (value) => {
     if (value === null || value === undefined || isNaN(value)) {
@@ -174,7 +223,7 @@ const DashboardPage = () => {
               {/* Charts Grid - Enhanced with Animations */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Skill Distribution Pie Chart */}
-                <AnimatedCard delay={0.3} glassmorphism={true} className="lg:col-span-2 max-w-2xl mx-auto w-full">
+                <AnimatedCard delay={0.3} glassmorphism={true}>
                   <h3 className="text-xl font-semibold mb-6 flex items-center gap-3">
                     <motion.div
                       whileHover={{ scale: 1.2, rotate: 360 }}
@@ -212,6 +261,75 @@ const DashboardPage = () => {
                         <Tooltip />
                         <Legend />
                       </PieChart>
+                    </ResponsiveContainer>
+                  </motion.div>
+                </AnimatedCard>
+
+                {/* Top Skills Bar Chart */}
+                <AnimatedCard delay={0.4} glassmorphism={true}>
+                  <h3 className="text-xl font-semibold mb-6 flex items-center gap-3">
+                    <motion.div
+                      whileHover={{ scale: 1.2, rotate: 360 }}
+                      transition={{ duration: 0.6 }}
+                      className="inline-flex items-center justify-center h-10 w-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 text-white"
+                    >
+                      <BarChart3 className="h-5 w-5" />
+                    </motion.div>
+                    Top Skills in Resume
+                  </h3>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.5, duration: 0.6 }}
+                  >
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart
+                        data={resumeSkillFreq}
+                        layout="vertical"
+                        margin={{ top: 5, right: 30, left: 60, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" />
+                        <YAxis dataKey="name" type="category" scale="band" />
+                        <Tooltip />
+                        <Bar dataKey="frequency" fill="#3b82f6" name="Frequency" animationDuration={1000} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </motion.div>
+                </AnimatedCard>
+
+                {/* Skill Comparison Chart */}
+                <AnimatedCard delay={0.5} className="lg:col-span-2" glassmorphism={true}>
+                  <h3 className="text-xl font-semibold mb-6 flex items-center gap-3">
+                    <motion.div
+                      whileHover={{ scale: 1.2, rotate: 360 }}
+                      transition={{ duration: 0.6 }}
+                      className="inline-flex items-center justify-center h-10 w-10 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 text-white"
+                    >
+                      <Target className="h-5 w-5" />
+                    </motion.div>
+                    Skill Frequency Comparison (Resume vs Job Description)
+                  </h3>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.6, duration: 0.6 }}
+                  >
+                    <ResponsiveContainer width="100%" height={400}>
+                      <BarChart
+                        data={sortedCombinedData}
+                        margin={{ top: 20, right: 30, left: 60, bottom: 60 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="resume" name="Resume Frequency" fill="#3b82f6" animationDuration={1000} />
+                        <Bar dataKey="job" name="Job Description Frequency" fill="#8b5cf6" animationDuration={1000} animationBegin={200} />
+                      </BarChart>
                     </ResponsiveContainer>
                   </motion.div>
                 </AnimatedCard>

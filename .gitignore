@@ -172,6 +172,3 @@ check_*.py
 
 # Development database
 *.sqlite3
-
-# Media files
-backend/media/

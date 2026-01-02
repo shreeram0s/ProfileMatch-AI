@@ -11,11 +11,14 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import EnhancedYouTubeCard from '../components/EnhancedYouTubeCard';
+import { fetchYouTubeRecommendations } from '../utils/youtube';
 
 const SuggestionsPage = () => {
   const [analysisData, setAnalysisData] = useState(null);
   const [missingSkills, setMissingSkills] = useState([]);
   const [youtubeRecommendations, setYoutubeRecommendations] = useState(null);
+  const [ytLoading, setYtLoading] = useState(false);
+  const [ytError, setYtError] = useState(null);
 
   useEffect(() => {
     // Get analysis data from localStorage
@@ -28,11 +31,6 @@ const SuggestionsPage = () => {
         console.log('📊 Analysis Data:', parsedAnalysis);
         console.log('🎥 YouTube Recommendations:', parsedAnalysis.youtube_recommendations);
         setAnalysisData(parsedAnalysis);
-        
-        // Use backend-provided recommendations
-        if (parsedAnalysis.youtube_recommendations && Object.keys(parsedAnalysis.youtube_recommendations).length > 0) {
-          setYoutubeRecommendations(parsedAnalysis.youtube_recommendations);
-        }
       } catch (e) {
         console.error('Error parsing last analysis:', e);
       }
@@ -51,8 +49,30 @@ const SuggestionsPage = () => {
     }
   }, []);
 
+  // Fetch YouTube recommendations if not present in analysis data
+  useEffect(() => {
+    const hasProvided = !!(analysisData && analysisData.youtube_recommendations && Object.keys(analysisData.youtube_recommendations).length > 0);
+    if (hasProvided) {
+      setYoutubeRecommendations(analysisData.youtube_recommendations);
+      return;
+    }
+    if (!missingSkills || missingSkills.length === 0) return;
 
-  const hasRecommendations = youtubeRecommendations && Object.values(youtubeRecommendations).some(videos => videos && videos.length > 0);
+    const run = async () => {
+      setYtLoading(true);
+      setYtError(null);
+      try {
+        const recs = await fetchYouTubeRecommendations(missingSkills.slice(0, 6));
+        setYoutubeRecommendations(recs);
+      } catch (err) {
+        console.error('YouTube fetch error:', err);
+        setYtError('Unable to load video recommendations.');
+      } finally {
+        setYtLoading(false);
+      }
+    };
+    run();
+  }, [analysisData, missingSkills]);
 
   return (
     <div className="min-h-screen">
@@ -142,7 +162,11 @@ const SuggestionsPage = () => {
             </p>
           </div>
           
-          {hasRecommendations ? (
+          {ytLoading ? (
+            <div className="text-center py-20">
+              <p className="text-muted-foreground">Loading video recommendations…</p>
+            </div>
+          ) : youtubeRecommendations && Object.keys(youtubeRecommendations).length > 0 ? (
             <div className="space-y-10">
               {Object.entries(youtubeRecommendations).map(([skill, videos], skillIndex) => (
                 videos && videos.length > 0 && (
@@ -186,7 +210,7 @@ const SuggestionsPage = () => {
               <Youtube className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-xl font-semibold mb-2">No Learning Resources Available</h3>
               <p className="text-muted-foreground">
-                Please complete an analysis to receive personalized learning recommendations.
+                {ytError ? ytError : 'Please complete an analysis to receive personalized learning recommendations.'}
               </p>
               <Link
                 to="/home"

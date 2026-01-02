@@ -15,8 +15,8 @@ exec gunicorn profilematch.wsgi:application \
     --worker-class sync \
     --max-requests 1000 \
     --max-requests-jitter 50 \
-    --timeout 300 \
-    --graceful-timeout 30 \
+    --timeout 600 \
+    --graceful-timeout 60 \
     --keep-alive 2 \
     --log-level info \
     --access-logfile - \
