@@ -172,7 +172,13 @@ CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=True, cast=boo
 
 CORS_ALLOWED_ORIGINS = config(
     'CORS_ALLOWED_ORIGINS',
-    default='http://localhost:5176,http://localhost:5177,http://127.0.0.1:5176,http://127.0.0.1:5177,https://profilematch-frontend.onrender.com',
+    default='http://localhost:5176,http://localhost:5177,http://127.0.0.1:5176,http://127.0.0.1:5177,https://profilematch-frontend.onrender.com,https://projektafrontend.onrender.com',
+    cast=lambda v: [s.strip() for s in v.split(',')]
+)
+
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='https://profilematch-frontend.onrender.com,https://projektafrontend.onrender.com',
     cast=lambda v: [s.strip() for s in v.split(',')]
 )
 
