@@ -300,50 +300,40 @@ class UploadView(View):
             jd.extracted_text = jd_text
             jd.save()
             
-            # Extract skills
-            print("Extracting skills...")
-            resume_skills = extract_skills(resume_text)
-            jd_skills = extract_skills(jd_text)
-            
-            print(f"Resume skills: {resume_skills}")
-            print(f"JD skills: {jd_skills}")
-            
-            # Calculate similarity
-            print("Calculating similarity...")
-            match_score = calculate_similarity(resume_text, jd_text)
-            
-            print(f"Match score: {match_score}")
-            
-            # Find missing skills
-            print("Finding missing skills...")
-            missing_skills = get_missing_skills(resume_skills, jd_skills)
-            
-            print(f"Missing skills: {missing_skills}")
+            # Use the comprehensive ResumeAnalyzer
+            print("Performing comprehensive analysis...")
+            analyzer = ResumeAnalyzer(settings.YOUTUBE_API_KEY)
+            results = analyzer.perform_comprehensive_analysis(resume_text, jd_text)
             
             # Create analysis record
             print("Creating analysis record...")
             analysis = Analysis.objects.create(
                 resume=resume,
                 jd=jd,
-                match_score=match_score,
-                missing_skills=missing_skills,
-                extracted_skills=resume_skills
+                match_score=results['overall_score'],
+                missing_skills=results['missing_skills'],
+                extracted_skills=results['resume_skills'],
+                semantic_similarity=results['semantic_similarity'],
+                skill_match_score=results['skill_match_score'],
+                youtube_recommendations=results['youtube_recommendations']
             )
             
             print(f"Analysis created with ID: {analysis.id}")
             
-            # Return consistent data structure with overall_score for frontend compatibility
+            # Return consistent data structure
             return JsonResponse({
                 'analysis_id': analysis.id,
-                'overall_score': match_score,  # Use overall_score for consistency
-                'match_score': match_score,    # Keep match_score for backward compatibility
-                'semantic_similarity': match_score,  # Use match_score as semantic_similarity for initial upload
-                'skill_match_score': match_score,    # Use match_score as skill_match_score for initial upload
-                'resume_skills': resume_skills,
-                'job_skills': jd_skills,
-                'missing_skills': missing_skills,
-                'resume_keyword_freq': {},
-                'jd_keyword_freq': {}
+                'overall_score': results['overall_score'],
+                'match_score': results['overall_score'],
+                'semantic_similarity': results['semantic_similarity'],
+                'skill_match_score': results['skill_match_score'],
+                'resume_skills': results['resume_skills'],
+                'job_skills': results['job_skills'],
+                'missing_skills': results['missing_skills'],
+                'resume_keyword_freq': results['resume_keyword_freq'],
+                'jd_keyword_freq': results['jd_keyword_freq'],
+                'suggestions': results['suggestions'],
+                'youtube_recommendations': results['youtube_recommendations']
             })
         except Exception as e:
             print(f"Error in upload view: {str(e)}")
@@ -366,147 +356,40 @@ class AnalyzeView(View):
             print(f"Resume text length: {len(analysis.resume.extracted_text) if analysis.resume.extracted_text else 0}")
             print(f"JD text length: {len(analysis.jd.extracted_text) if analysis.jd.extracted_text else 0}")
             
-            # Use a simplified analysis to return results faster
-            # Calculate basic similarity using the original method
-            basic_similarity = calculate_similarity(analysis.resume.extracted_text, analysis.jd.extracted_text)
+            # Use the comprehensive ResumeAnalyzer
+            analyzer = ResumeAnalyzer(settings.YOUTUBE_API_KEY)
+            results = analyzer.perform_comprehensive_analysis(
+                analysis.resume.extracted_text, 
+                analysis.jd.extracted_text
+            )
             
-            # Extract skills using basic method
-            resume_skills = extract_skills(analysis.resume.extracted_text)
-            jd_skills = extract_skills(analysis.jd.extracted_text)
-            missing_skills = get_missing_skills(resume_skills, jd_skills)
-            
-            # Calculate a more meaningful overall score
-            # Use a combination of similarity and skill matching
-            skill_match_percentage = 0
-            if jd_skills:
-                matched_skills = len([skill for skill in resume_skills if skill in jd_skills])
-                skill_match_percentage = (matched_skills / len(jd_skills)) * 100
-            
-            # Initialize recommendations dictionary early to avoid reference-before-assignment
-            youtube_recommendations = {}
-
-            # Combine similarity and skill match for overall score
-            overall_score = (basic_similarity * 0.6 + skill_match_percentage * 0.4)
-            
-            # Update analysis record with basic results
-            analysis.match_score = overall_score
-            analysis.missing_skills = missing_skills
-            analysis.extracted_skills = resume_skills
-            analysis.semantic_similarity = basic_similarity
-            analysis.skill_match_score = skill_match_percentage
-            analysis.youtube_recommendations = youtube_recommendations
+            # Update analysis record with results
+            analysis.match_score = results['overall_score']
+            analysis.missing_skills = results['missing_skills']
+            analysis.extracted_skills = results['resume_skills']
+            analysis.semantic_similarity = results['semantic_similarity']
+            analysis.skill_match_score = results['skill_match_score']
+            analysis.youtube_recommendations = results['youtube_recommendations']
             analysis.save()
             
-            print(f"Basic analysis completed with overall score: {overall_score}")
+            print(f"Analysis completed with overall score: {results['overall_score']}")
+            print(f"Found {len(results['missing_skills'])} missing skills")
+            print(f"Generated recommendations for {len(results['youtube_recommendations'])} skills")
             
-            # Import YouTube API client
-            from googleapiclient.discovery import build
-            import requests
-            
-            # Initialize YouTube API client
-            youtube = build('youtube', 'v3', developerKey=settings.YOUTUBE_API_KEY)
-            
-            # Use the initialized youtube_recommendations and populate if API is available
-            
-            # Get YouTube recommendations for each missing skill
-            for skill in missing_skills[:5]:  # Limit to first 5 missing skills
-                try:
-                    print(f"Fetching YouTube videos for skill: {skill}")
-                    # Search for videos related to the skill
-                    search_response = youtube.search().list(
-                        q=skill,
-                        part='snippet',
-                        type='video',
-                        maxResults=5,
-                        order='relevance'  # Get most relevant videos
-                    ).execute()
-                    
-                    print(f"YouTube search response for {skill}: {len(search_response.get('items', []))} items")
-                    
-                    videos = []
-                    for item in search_response.get('items', []):
-                        video_id = item['id']['videoId']
-                        snippet = item['snippet']
-                        
-                        print(f"Processing video: {snippet['title'][:50]}...")
-                        
-                        # Get video details (duration, view count, etc.)
-                        video_response = youtube.videos().list(
-                            id=video_id,
-                            part='contentDetails,statistics'
-                        ).execute()
-                        
-                        duration = 'N/A'
-                        view_count = 'N/A'
-                        if video_response.get('items'):
-                            video_details = video_response['items'][0]
-                            content_details = video_details.get('contentDetails', {})
-                            stats = video_details.get('statistics', {})
-                            
-                            # Format duration
-                            duration_iso = content_details.get('duration', 'PT0S')
-                            duration = duration_iso.replace('PT', '').replace('H', 'h ').replace('M', 'm ').replace('S', 's')
-                            
-                            # Format view count
-                            view_count = stats.get('viewCount', '0')
-                            view_count = format_view_count(view_count)
-                        
-                        # Get highest quality thumbnail available
-                        thumbnail_url = snippet.get('thumbnails', {}).get('high', {}).get('url')
-                        if not thumbnail_url:
-                            thumbnail_url = snippet.get('thumbnails', {}).get('medium', {}).get('url')
-                        if not thumbnail_url:
-                            thumbnail_url = snippet.get('thumbnails', {}).get('default', {}).get('url')
-                        
-                        videos.append({
-                            'title': snippet['title'],
-                            'url': f'https://www.youtube.com/watch?v={video_id}',
-                            'thumbnail': thumbnail_url,
-                            'duration': duration,
-                            'views': view_count,
-                            'channel': snippet['channelTitle'],
-                            'description': snippet['description'][:200] + '...' if len(snippet['description']) > 200 else snippet['description']
-                        })
-                        
-                    youtube_recommendations[skill] = videos
-                    
-                    print(f"Successfully added {len(videos)} videos for skill {skill}")
-                    
-                except Exception as e:
-                    print(f"Error fetching YouTube videos for skill {skill}: {str(e)}")
-                    import traceback
-                    traceback.print_exc()
-                    # Fallback to generic recommendation if API call fails
-                    youtube_recommendations[skill] = [
-                        {
-                            'title': f'{skill} - Complete Tutorial',
-                            'url': 'https://www.youtube.com/results?search_query=' + skill.replace(' ', '+'),
-                            'thumbnail': 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg',
-                            'duration': 'N/A',
-                            'views': 'N/A',
-                            'channel': 'Various',
-                            'description': f'Learning resources for {skill} skill development'
-                        }
-                    ]
-            
-            # Save the fetched recommendations to the analysis record
-            analysis.youtube_recommendations = youtube_recommendations
-            analysis.save()
-            
-            # Return basic results quickly
+            # Return results
             return JsonResponse({
                 'analysis_id': analysis.id,
-                'overall_score': overall_score,
-                'match_score': overall_score,  # Keep match_score as well for compatibility
-                'semantic_similarity': basic_similarity,
-                'skill_match_score': skill_match_percentage,
-                'resume_skills': resume_skills,
-                'job_skills': jd_skills,
-                'missing_skills': missing_skills,
-                'resume_keyword_freq': {},
-                'jd_keyword_freq': {},
-                'suggestions': ['Add more technical skills to increase match score', 'Include specific technologies mentioned in the job description', 'Quantify your achievements with metrics and numbers'],
-                'youtube_recommendations': youtube_recommendations
+                'overall_score': results['overall_score'],
+                'match_score': results['overall_score'],  # Keep match_score for compatibility
+                'semantic_similarity': results['semantic_similarity'],
+                'skill_match_score': results['skill_match_score'],
+                'resume_skills': results['resume_skills'],
+                'job_skills': results['job_skills'],
+                'missing_skills': results['missing_skills'],
+                'resume_keyword_freq': results['resume_keyword_freq'],
+                'jd_keyword_freq': results['jd_keyword_freq'],
+                'suggestions': results['suggestions'],
+                'youtube_recommendations': results['youtube_recommendations']
             })
         except Analysis.DoesNotExist:
             print("Analysis not found")
