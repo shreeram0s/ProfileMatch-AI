@@ -5,6 +5,7 @@ echo "Running database migrations..."
 python manage.py migrate --noinput
 
 echo "Starting Gunicorn server..."
+PORT=${PORT:-10000}
 echo "Port: ${PORT}"
 echo "Memory-optimized configuration for free tier"
 
@@ -20,5 +21,4 @@ exec gunicorn profilematch.wsgi:application \
     --keep-alive 2 \
     --log-level info \
     --access-logfile - \
-    --error-logfile - \
-    --preload
+    --error-logfile -

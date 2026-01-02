@@ -19,7 +19,7 @@ export default defineConfig({
       'profilematch-ai-frontend.onrender.com'
     ]
   },
-  base: './',
+  base: '/',
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
