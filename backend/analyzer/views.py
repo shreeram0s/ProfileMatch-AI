@@ -489,6 +489,10 @@ class AnalyzeView(View):
                         }
                     ]
             
+            # Save the fetched recommendations to the analysis record
+            analysis.youtube_recommendations = youtube_recommendations
+            analysis.save()
+            
             # Return basic results quickly
             return JsonResponse({
                 'analysis_id': analysis.id,
