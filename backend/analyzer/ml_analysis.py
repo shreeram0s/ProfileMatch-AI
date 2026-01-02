@@ -271,10 +271,13 @@ class SkillExtractor:
 class EmbeddingAnalyzer:
     def __init__(self):
         try:
+            import os
             from sentence_transformers import SentenceTransformer
-            self.model = SentenceTransformer('all-MiniLM-L6-v2')
+            model_path = os.environ.get('SENTENCE_TRANSFORMER_MODEL_PATH', 'all-MiniLM-L6-v2')
+            self.model = SentenceTransformer(model_path)
             self.use_sentence_transformers = True
-        except Exception:
+        except Exception as e:
+            print(f"Error loading SentenceTransformer: {e}")
             self.model = None
             self.use_sentence_transformers = False
     

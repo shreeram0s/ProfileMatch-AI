@@ -37,15 +37,20 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Download NLP models during build
 RUN python -m spacy download en_core_web_sm
 RUN python -c "import nltk; nltk.download('wordnet'); nltk.download('omw-1.4'); nltk.download('punkt'); nltk.download('stopwords')"
-RUN python -c "import traceback; \
-    try: \
-    from sentence_transformers import SentenceTransformer; \
-    print('Downloading SentenceTransformer model...'); \
-    SentenceTransformer('all-MiniLM-L6-v2'); \
-    print('Model downloaded successfully.'); \
-    except Exception: \
-    traceback.print_exc(); \
-    exit(1)"
+
+# Install huggingface-hub for downloading model files
+RUN pip install huggingface-hub
+
+# Download SentenceTransformer model files to a specific directory
+# This avoids loading the model into memory during build
+ENV SENTENCE_TRANSFORMER_MODEL_PATH=/app/model/all-MiniLM-L6-v2
+RUN python -c "from huggingface_hub import snapshot_download; \
+    import os; \
+    print('Downloading model files...'); \
+    path = snapshot_download('sentence-transformers/all-MiniLM-L6-v2', \
+                           local_dir=os.environ['SENTENCE_TRANSFORMER_MODEL_PATH'], \
+                           local_dir_use_symlinks=False); \
+    print(f'Model downloaded to {path}')"
 
 # Copy application code
 COPY . .
