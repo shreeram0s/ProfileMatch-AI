@@ -36,23 +36,8 @@ const HistoryPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchHistory();
+    setLoading(false);
   }, []);
-
-  const fetchHistory = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const response = await api.get('/api/history/');
-      setHistory(response.data.history);
-    } catch (err) {
-      setError('Error fetching analysis history. Please try again.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchSavedReports = async () => {
     try {
@@ -72,6 +57,20 @@ const HistoryPage = () => {
       setSavedReports(response.data.reports);
     } catch (err) {
       console.error('Error searching reports:', err);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+  const deleteReportsByName = async () => {
+    if (!searchTerm.trim()) return;
+    setSearchLoading(true);
+    try {
+      await api.post('/api/report/delete/by-name/', { name: searchTerm.trim() });
+      setSavedReports([]);
+      setHasSearched(false);
+      setSearchTerm('');
+    } catch (err) {
+      console.error('Error deleting reports:', err);
     } finally {
       setSearchLoading(false);
     }
@@ -217,143 +216,13 @@ const HistoryPage = () => {
           </p>
         </motion.div>
 
-        {/* Tabs */}
-        <div className="flex justify-center mb-8">
-          <div className="inline-flex p-1 bg-muted rounded-lg">
-            <button
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'recent' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-              onClick={() => setActiveTab('recent')}
-            >
-              Recent Analyses
-            </button>
-            <button
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'saved' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-              onClick={() => setActiveTab('saved')}
-            >
-              Saved Reports
-            </button>
-          </div>
-        </div>
-
         {loading ? (
           <div className="flex justify-center items-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
           <div>
-            {activeTab === 'recent' && (
-              <div>
-                {history.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {history.map((analysis, index) => (
-                      <motion.div
-                        key={analysis.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.1 }}
-                        className="bg-background border rounded-2xl p-6 hover:shadow-md transition-shadow relative"
-                      >
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <Calendar className="h-4 w-4" />
-                            <span className="text-sm">{formatDate(analysis.created_at)}</span>
-                          </div>
-                          <div className={`text-2xl font-bold ${getMatchScoreColor(analysis.match_score)}`}>
-                            {Math.round(analysis.match_score)}%
-                          </div>
-                        </div>
-                        
-                        <div className="mb-4">
-                          <div className="flex items-center gap-2 mb-2">
-                            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm font-medium">Match Score</span>
-                          </div>
-                          <div className="w-full bg-muted rounded-full h-2">
-                            <div
-                              className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full"
-                              style={{ width: `${analysis.match_score}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                        
-                        <div className="mb-4">
-                          <div className="flex items-center gap-2 mb-2">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm font-medium">Missing Skills</span>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {analysis.missing_skills.slice(0, 3).map((skill, idx) => (
-                              <span
-                                key={idx}
-                                className="px-2 py-1 bg-muted rounded-md text-xs"
-                              >
-                                {skill}
-                              </span>
-                            ))}
-                            {analysis.missing_skills.length > 3 && (
-                              <span className="px-2 py-1 bg-muted rounded-md text-xs">
-                                +{analysis.missing_skills.length - 3} more
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center justify-between pt-4 border-t">
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <TrendingUp className="h-4 w-4" />
-                            <span className="text-sm">Analysis #{analysis.id}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => {
-                                setSelectedForSave(analysis);
-                                setShowSaveModal(true);
-                              }}
-                              className="flex items-center gap-1 text-sm text-primary hover:underline"
-                            >
-                              <Save className="h-4 w-4" />
-                              Save
-                            </button>
-                            <button
-                              onClick={() => viewDetails(analysis.id)}
-                              className="flex items-center gap-1 text-sm text-primary hover:underline"
-                            >
-                              <Eye className="h-4 w-4" />
-                              View Details
-                            </button>
-                            <button
-                              onClick={() => reanalyze(analysis.id)}
-                              className="flex items-center gap-1 text-sm text-primary hover:underline"
-                            >
-                              <ArrowRight className="h-4 w-4" />
-                              Reanalyze
-                            </button>
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <div className="bg-muted rounded-full p-4 w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                      <FileText className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                    <h3 className="text-xl font-semibold mb-2">No Analysis History</h3>
-                    <p className="text-muted-foreground mb-6">
-                      You haven't analyzed any resumes or job descriptions yet.
-                    </p>
-                    <button
-                      onClick={() => window.location.href = '/home'}
-                      className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-lg hover:opacity-90 transition-opacity"
-                    >
-                      Analyze Your First Resume
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'saved' && (
+            {
               <div>
                 <div className="flex items-center gap-2 mb-6">
                   <div className="relative flex-1">
@@ -372,6 +241,13 @@ const HistoryPage = () => {
                     className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50"
                   >
                     {searchLoading ? 'Searching...' : 'Search'}
+                  </button>
+                  <button
+                    onClick={deleteReportsByName}
+                    disabled={searchLoading || !searchTerm.trim()}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:opacity-90 disabled:opacity-50"
+                  >
+                    Delete
                   </button>
                   <button
                     onClick={() => { setSearchTerm(''); setSavedReports([]); setHasSearched(false); }}
@@ -448,16 +324,10 @@ const HistoryPage = () => {
                     <p className="text-muted-foreground mb-6">
                       Enter a report name above to view saved results.
                     </p>
-                    <button
-                      onClick={() => setActiveTab('recent')}
-                      className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-lg hover:opacity-90 transition-opacity"
-                    >
-                      View Recent Analyses
-                    </button>
                   </div>
                 )}
               </div>
-            )}
+            }
           </div>
         )}
 

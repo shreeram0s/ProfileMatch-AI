@@ -271,13 +271,10 @@ class SkillExtractor:
 class EmbeddingAnalyzer:
     def __init__(self):
         try:
-            import os
             from sentence_transformers import SentenceTransformer
-            model_path = os.environ.get('SENTENCE_TRANSFORMER_MODEL_PATH', 'all-MiniLM-L6-v2')
-            self.model = SentenceTransformer(model_path)
+            self.model = SentenceTransformer('all-MiniLM-L6-v2')
             self.use_sentence_transformers = True
-        except Exception as e:
-            print(f"Error loading SentenceTransformer: {e}")
+        except Exception:
             self.model = None
             self.use_sentence_transformers = False
     
@@ -456,128 +453,6 @@ class YouTubeRecommendationEngine:
                     'channel': 'Tech With Tim',
                     'description': 'Django tutorial for beginners. Learn how to build websites with Django.',
                     'skill': 'django'
-                }
-            ],
-            'java': [
-                {
-                    'video_id': 'eIrMbAQW0pE',
-                    'title': 'Java Tutorial for Beginners',
-                    'url': 'https://www.youtube.com/watch?v=eIrMbAQW0pE',
-                    'thumbnail': 'https://i.ytimg.com/vi/eIrMbAQW0pE/hqdefault.jpg',
-                    'channel': 'Programming with Mosh',
-                    'description': 'Java tutorial for beginners. Learn Java in 2.5 hours.',
-                    'skill': 'java'
-                },
-                {
-                    'video_id': 'A74TOX803D0',
-                    'title': 'Java Full Course for Beginners',
-                    'url': 'https://www.youtube.com/watch?v=A74TOX803D0',
-                    'thumbnail': 'https://i.ytimg.com/vi/A74TOX803D0/hqdefault.jpg',
-                    'channel': 'freeCodeCamp.org',
-                    'description': 'Learn Java in this full course for beginners.',
-                    'skill': 'java'
-                }
-            ],
-            'sql': [
-                {
-                    'video_id': '7S_tz1z_5bA',
-                    'title': 'SQL Tutorial - Full Database Course for Beginners',
-                    'url': 'https://www.youtube.com/watch?v=7S_tz1z_5bA',
-                    'thumbnail': 'https://i.ytimg.com/vi/7S_tz1z_5bA/hqdefault.jpg',
-                    'channel': 'Programming with Mosh',
-                    'description': 'Learn SQL in this crash course.',
-                    'skill': 'sql'
-                },
-                {
-                    'video_id': 'HXV3zeQKqGY',
-                    'title': 'SQL - Full Course for Beginners',
-                    'url': 'https://www.youtube.com/watch?v=HXV3zeQKqGY',
-                    'thumbnail': 'https://i.ytimg.com/vi/HXV3zeQKqGY/hqdefault.jpg',
-                    'channel': 'freeCodeCamp.org',
-                    'description': 'Learn SQL in this full course.',
-                    'skill': 'sql'
-                }
-            ],
-            'aws': [
-                {
-                    'video_id': '3hLmDS179YE',
-                    'title': 'AWS Certified Cloud Practitioner - Full Course',
-                    'url': 'https://www.youtube.com/watch?v=3hLmDS179YE',
-                    'thumbnail': 'https://i.ytimg.com/vi/3hLmDS179YE/hqdefault.jpg',
-                    'channel': 'freeCodeCamp.org',
-                    'description': 'Prepare for the AWS Certified Cloud Practitioner exam.',
-                    'skill': 'aws'
-                },
-                {
-                    'video_id': 'k1RI5locZE4',
-                    'title': 'AWS Tutorial For Beginners',
-                    'url': 'https://www.youtube.com/watch?v=k1RI5locZE4',
-                    'thumbnail': 'https://i.ytimg.com/vi/k1RI5locZE4/hqdefault.jpg',
-                    'channel': 'Simplilearn',
-                    'description': 'AWS tutorial for beginners. Learn AWS basics.',
-                    'skill': 'aws'
-                }
-            ],
-            'docker': [
-                {
-                    'video_id': 'pTFZFxd4hOI',
-                    'title': 'Docker Tutorial for Beginners',
-                    'url': 'https://www.youtube.com/watch?v=pTFZFxd4hOI',
-                    'thumbnail': 'https://i.ytimg.com/vi/pTFZFxd4hOI/hqdefault.jpg',
-                    'channel': 'Programming with Mosh',
-                    'description': 'Learn Docker in this crash course.',
-                    'skill': 'docker'
-                },
-                {
-                    'video_id': '3c-iBn73dDE',
-                    'title': 'Docker - A Beginner\'s Guide',
-                    'url': 'https://www.youtube.com/watch?v=3c-iBn73dDE',
-                    'thumbnail': 'https://i.ytimg.com/vi/3c-iBn73dDE/hqdefault.jpg',
-                    'channel': 'freeCodeCamp.org',
-                    'description': 'Learn Docker in this beginner\'s guide.',
-                    'skill': 'docker'
-                }
-            ],
-            'html': [
-                {
-                    'video_id': 'G3e-cpL7ofc',
-                    'title': 'HTML & CSS Full Course',
-                    'url': 'https://www.youtube.com/watch?v=G3e-cpL7ofc',
-                    'thumbnail': 'https://i.ytimg.com/vi/G3e-cpL7ofc/hqdefault.jpg',
-                    'channel': 'SuperSimpleDev',
-                    'description': 'Learn HTML and CSS in this full course.',
-                    'skill': 'html'
-                }
-            ],
-            'css': [
-                {
-                    'video_id': 'G3e-cpL7ofc',
-                    'title': 'HTML & CSS Full Course',
-                    'url': 'https://www.youtube.com/watch?v=G3e-cpL7ofc',
-                    'thumbnail': 'https://i.ytimg.com/vi/G3e-cpL7ofc/hqdefault.jpg',
-                    'channel': 'SuperSimpleDev',
-                    'description': 'Learn HTML and CSS in this full course.',
-                    'skill': 'css'
-                }
-            ],
-            'git': [
-                {
-                    'video_id': '8JJ101D3knE',
-                    'title': 'Git Tutorial for Beginners',
-                    'url': 'https://www.youtube.com/watch?v=8JJ101D3knE',
-                    'thumbnail': 'https://i.ytimg.com/vi/8JJ101D3knE/hqdefault.jpg',
-                    'channel': 'Programming with Mosh',
-                    'description': 'Learn Git in this crash course.',
-                    'skill': 'git'
-                },
-                {
-                    'video_id': 'RGOj5yH7evk',
-                    'title': 'Git and GitHub for Beginners',
-                    'url': 'https://www.youtube.com/watch?v=RGOj5yH7evk',
-                    'thumbnail': 'https://i.ytimg.com/vi/RGOj5yH7evk/hqdefault.jpg',
-                    'channel': 'freeCodeCamp.org',
-                    'description': 'Learn Git and GitHub in this beginner\'s guide.',
-                    'skill': 'git'
                 }
             ]
         }

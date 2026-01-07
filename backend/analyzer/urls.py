@@ -13,4 +13,5 @@ urlpatterns = [
     path('user-reports/', views.UserReportsView.as_view(), name='user-reports'),
     path('report/<int:report_id>/', views.ReportDetailView.as_view(), name='report-detail'),
     path('report/by-name/', views.ReportByNameView.as_view(), name='report-by-name'),
+    path('report/delete/by-name/', views.DeleteReportByNameView.as_view(), name='report-delete-by-name'),
 ]

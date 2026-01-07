@@ -20,7 +20,7 @@ export default defineConfig({
       'projektafrontend.onrender.com'
     ]
   },
-  base: '/',
+  base: './',
   build: {
     outDir: 'dist',
     assetsDir: 'assets',

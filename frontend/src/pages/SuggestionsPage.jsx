@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import EnhancedYouTubeCard from '../components/EnhancedYouTubeCard';
+import { fetchYouTubeRecommendations } from '../utils/youtube';
 
 const SuggestionsPage = () => {
   const [analysisData, setAnalysisData] = useState(null);
@@ -50,10 +51,28 @@ const SuggestionsPage = () => {
 
   // Fetch YouTube recommendations if not present in analysis data
   useEffect(() => {
-    if (analysisData && analysisData.youtube_recommendations) {
+    const hasProvided = !!(analysisData && analysisData.youtube_recommendations && Object.keys(analysisData.youtube_recommendations).length > 0);
+    if (hasProvided) {
       setYoutubeRecommendations(analysisData.youtube_recommendations);
+      return;
     }
-  }, [analysisData]);
+    if (!missingSkills || missingSkills.length === 0) return;
+
+    const run = async () => {
+      setYtLoading(true);
+      setYtError(null);
+      try {
+        const recs = await fetchYouTubeRecommendations(missingSkills.slice(0, 6));
+        setYoutubeRecommendations(recs);
+      } catch (err) {
+        console.error('YouTube fetch error:', err);
+        setYtError('Unable to load video recommendations.');
+      } finally {
+        setYtLoading(false);
+      }
+    };
+    run();
+  }, [analysisData, missingSkills]);
 
   return (
     <div className="min-h-screen">

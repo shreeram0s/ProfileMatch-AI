@@ -34,7 +34,7 @@ services:
         value: "cb18422dd62921861ad8d4b423942105"
 
   - type: web
-    name: profilematch-frontend
+    name: projektafrontend
     env: static
     plan: free
     rootDir: frontend
