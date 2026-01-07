@@ -25,6 +25,17 @@ const FALLBACK_RECOMMENDATIONS = {
       }
     }
   ],
+  java: [
+    {
+      id: { videoId: 'grEKMHGYyns' },
+      snippet: {
+        title: 'Java Tutorial for Beginners',
+        channelTitle: 'Programming with Mosh',
+        thumbnails: { high: { url: 'https://i.ytimg.com/vi/grEKMHGYyns/hqdefault.jpg' } },
+        description: 'Master the fundamentals of Java programming.'
+      }
+    }
+  ],
   javascript: [
     {
       id: { videoId: 'PkZNo7MFNFg' },
@@ -44,6 +55,28 @@ const FALLBACK_RECOMMENDATIONS = {
         channelTitle: 'freeCodeCamp.org',
         thumbnails: { high: { url: 'https://i.ytimg.com/vi/bMknfKXIFA8/hqdefault.jpg' } },
         description: 'Learn React by building eight real-world projects and solving 140+ coding challenges.'
+      }
+    }
+  ],
+  node: [
+    {
+      id: { videoId: 'TlB_eWDSMt4' },
+      snippet: {
+        title: 'Node.js Tutorial for Beginners',
+        channelTitle: 'Programming with Mosh',
+        thumbnails: { high: { url: 'https://i.ytimg.com/vi/TlB_eWDSMt4/hqdefault.jpg' } },
+        description: 'Build backend applications with Node.js.'
+      }
+    }
+  ],
+  django: [
+    {
+      id: { videoId: 'F5mRW0jo-U4' },
+      snippet: {
+        title: 'Django Course',
+        channelTitle: 'freeCodeCamp.org',
+        thumbnails: { high: { url: 'https://i.ytimg.com/vi/F5mRW0jo-U4/hqdefault.jpg' } },
+        description: 'Build web apps with Django.'
       }
     }
   ],
@@ -69,12 +102,12 @@ const getFallbackVideos = (skill) => {
   // Generic fallback for unknown skills
   return [
     {
-      id: { videoId: 'generic' },
+      id: { videoId: 'rfscVS0vtbw' },
       snippet: {
         title: `Learn ${skill} - Complete Tutorial`,
-        channelTitle: 'Tech Education',
-        thumbnails: { high: { url: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg' } },
-        description: `Comprehensive guide to mastering ${skill} for beginners and advanced developers.`
+        channelTitle: 'freeCodeCamp.org',
+        thumbnails: { high: { url: 'https://i.ytimg.com/vi/rfscVS0vtbw/hqdefault.jpg' } },
+        description: `Comprehensive guide to mastering ${skill}.`
       },
       url: `https://www.youtube.com/results?search_query=learn+${skill}`
     }

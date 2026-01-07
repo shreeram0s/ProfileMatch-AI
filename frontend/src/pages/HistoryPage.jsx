@@ -243,12 +243,21 @@ const HistoryPage = () => {
                     {searchLoading ? 'Searching...' : 'Search'}
                   </button>
                   <button
-                    onClick={deleteReportsByName}
+                    onClick={searchSavedReports}
                     disabled={searchLoading || !searchTerm.trim()}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:opacity-90 disabled:opacity-50"
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50"
                   >
-                    Delete
+                    {searchLoading ? 'Searching...' : 'Search'}
                   </button>
+                  {searchTerm.trim() && (
+                    <button
+                      onClick={deleteReportsByName}
+                      disabled={searchLoading}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:opacity-90 disabled:opacity-50"
+                    >
+                      Delete
+                    </button>
+                  )}
                   <button
                     onClick={() => { setSearchTerm(''); setSavedReports([]); setHasSearched(false); }}
                     className="px-4 py-2 bg-muted rounded-lg hover:bg-muted/80"
