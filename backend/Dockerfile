@@ -23,6 +23,7 @@ ENV ADZUNA_APP_KEY=cb18422dd62921861ad8d4b423942105
 ENV YOUTUBE_API_KEY=AIzaSyCC8YoN1GeLvQXYbOei_ykpoQZELHyD6HY
 
 WORKDIR /app
+ENV PORT=8000
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -54,3 +55,4 @@ RUN mkdir -p media/resumes
 
 # Start server
 CMD ["/start.sh"]
+EXPOSE 8000

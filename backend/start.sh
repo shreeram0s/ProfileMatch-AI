@@ -4,6 +4,7 @@ set -e
 echo "Running database migrations..."
 python manage.py migrate --noinput
 
+PORT=${PORT:-8000}
 echo "Starting Gunicorn server..."
 echo "Port: ${PORT}"
 echo "Memory-optimized configuration for free tier"
