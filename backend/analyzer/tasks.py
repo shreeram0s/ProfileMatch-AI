@@ -28,7 +28,6 @@ def analyze_resume_async(self, session_id, resume_path, jd_path):
                 'message': 'Extracting text from documents...'
             }
         )
-        time.sleep(0.5)  # Simulate processing time
         
         resume_text = TextExtractor.extract_text_from_file(resume_path)
         jd_text = TextExtractor.extract_text_from_file(jd_path)
@@ -43,7 +42,6 @@ def analyze_resume_async(self, session_id, resume_path, jd_path):
                 'message': 'Extracting skills from resume and job description...'
             }
         )
-        time.sleep(0.5)
         
         resume_skills = extract_skills(resume_text)
         jd_skills = extract_skills(jd_text)
@@ -58,7 +56,6 @@ def analyze_resume_async(self, session_id, resume_path, jd_path):
                 'message': 'Analyzing resume compatibility...'
             }
         )
-        time.sleep(1)
         
         analyzer = ResumeAnalyzer()
         analysis_result = analyzer.analyze(resume_text, jd_text)
@@ -73,7 +70,6 @@ def analyze_resume_async(self, session_id, resume_path, jd_path):
                 'message': 'Calculating match score...'
             }
         )
-        time.sleep(0.5)
         
         similarity_score = calculate_similarity(resume_text, jd_text)
         
@@ -87,7 +83,6 @@ def analyze_resume_async(self, session_id, resume_path, jd_path):
                 'message': 'Finalizing results...'
             }
         )
-        time.sleep(0.5)
         
         # Prepare results
         results = {

@@ -9,21 +9,39 @@ import re
 from collections import Counter
 import string
 
-# Download required NLTK data
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt')
+# Global caches for heavy models
+_SPACY_MODEL = None
+_TRANSFORMER_MODEL = None
+_STOPWORDS = None
 
-try:
-    nltk.data.find('corpora/stopwords')
-except LookupError:
-    nltk.download('stopwords')
+def get_spacy_model():
+    global _SPACY_MODEL
+    if _SPACY_MODEL is None:
+        try:
+            _SPACY_MODEL = spacy.load("en_core_web_sm")
+        except OSError:
+            pass
+    return _SPACY_MODEL
 
-try:
-    nltk.data.find('corpora/wordnet')
-except LookupError:
-    nltk.download('wordnet')
+def get_transformer_model():
+    global _TRANSFORMER_MODEL
+    if _TRANSFORMER_MODEL is None:
+        try:
+            from sentence_transformers import SentenceTransformer
+            # Use a smaller model or ensure it's loaded efficiently
+            _TRANSFORMER_MODEL = SentenceTransformer('all-MiniLM-L6-v2')
+        except Exception:
+            pass
+    return _TRANSFORMER_MODEL
+
+def get_stopwords():
+    global _STOPWORDS
+    if _STOPWORDS is None:
+        try:
+            _STOPWORDS = set(stopwords.words('english'))
+        except LookupError:
+            _STOPWORDS = set()
+    return _STOPWORDS
 
 class TextExtractor:
     @staticmethod
@@ -49,19 +67,13 @@ class TextExtractor:
 class TextPreprocessor:
     def __init__(self):
         # Load spaCy model if available
-        try:
-            self.nlp = spacy.load("en_core_web_sm")
-            self.use_spacy = True
-        except OSError:
-            self.nlp = None
-            self.use_spacy = False
+        self.nlp = get_spacy_model()
+        self.use_spacy = self.nlp is not None
         
         # Initialize NLTK components
         self.lemmatizer = WordNetLemmatizer()
-        try:
-            self.stop_words = set(stopwords.words('english'))
-        except LookupError:
-            self.stop_words = set()
+        self.stop_words = get_stopwords()
+        
         # Add custom resume-related stopwords
         self.custom_stopwords = {
             'job', 'work', 'experience', 'skill', 'ability', 'knowledge', 'responsibility',
@@ -73,7 +85,8 @@ class TextPreprocessor:
             'he', 'him', 'his', 'himself', 'she', "she's", 'her', 'hers', 'herself',
             'it', "it's", 'its', 'itself', 'they', 'them', 'their', 'theirs', 'themselves'
         }
-        self.stop_words.update(self.custom_stopwords)
+        if self.stop_words:
+            self.stop_words.update(self.custom_stopwords)
     
     def preprocess_text(self, text):
         """Preprocess text using spaCy (primary) or NLTK (fallback)"""
@@ -270,13 +283,8 @@ class SkillExtractor:
 
 class EmbeddingAnalyzer:
     def __init__(self):
-        try:
-            from sentence_transformers import SentenceTransformer
-            self.model = SentenceTransformer('all-MiniLM-L6-v2')
-            self.use_sentence_transformers = True
-        except Exception:
-            self.model = None
-            self.use_sentence_transformers = False
+        self.model = get_transformer_model()
+        self.use_sentence_transformers = self.model is not None
     
     def calculate_semantic_similarity(self, text1, text2):
         """Calculate semantic similarity using SentenceTransformers or TF-IDF"""
