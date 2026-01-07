@@ -94,7 +94,7 @@ export const fetchYouTubeRecommendations = async (skills) => {
         video_id: video.id.videoId,
         title: video.snippet.title,
         channel: video.snippet.channelTitle,
-        thumbnail: video.snippet.thumbnails.high.url,
+        thumbnail: video.snippet.thumbnails?.high?.url || video.snippet.thumbnails?.medium?.url || video.snippet.thumbnails?.default?.url || '',
         description: video.snippet.description,
         url: video.url || `https://www.youtube.com/watch?v=${video.id.videoId}`,
         skill: skill
@@ -122,7 +122,7 @@ export const fetchYouTubeRecommendations = async (skills) => {
           video_id: item.id.videoId,
           title: item.snippet.title,
           channel: item.snippet.channelTitle,
-          thumbnail: item.snippet.thumbnails.high.url,
+          thumbnail: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url || '',
           description: item.snippet.description,
           url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
           skill: skill
@@ -133,7 +133,7 @@ export const fetchYouTubeRecommendations = async (skills) => {
           video_id: video.id.videoId,
           title: video.snippet.title,
           channel: video.snippet.channelTitle,
-          thumbnail: video.snippet.thumbnails.high.url,
+          thumbnail: video.snippet.thumbnails?.high?.url || video.snippet.thumbnails?.medium?.url || video.snippet.thumbnails?.default?.url || '',
           description: video.snippet.description,
           url: video.url || `https://www.youtube.com/watch?v=${video.id.videoId}`,
           skill: skill
@@ -146,7 +146,7 @@ export const fetchYouTubeRecommendations = async (skills) => {
         video_id: video.id.videoId,
         title: video.snippet.title,
         channel: video.snippet.channelTitle,
-        thumbnail: video.snippet.thumbnails.high.url,
+        thumbnail: video.snippet.thumbnails?.high?.url || video.snippet.thumbnails?.medium?.url || video.snippet.thumbnails?.default?.url || '',
         description: video.snippet.description,
         url: video.url || `https://www.youtube.com/watch?v=${video.id.videoId}`,
         skill: skill
