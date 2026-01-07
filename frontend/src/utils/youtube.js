@@ -93,25 +93,139 @@ const FALLBACK_RECOMMENDATIONS = {
   ]
 };
 
+const GENERIC_FALLBACK_POOL = [
+  {
+    id: { videoId: 'rfscVS0vtbw' },
+    snippet: {
+      title: 'Learn Python - Full Course for Beginners [Tutorial]',
+      channelTitle: 'freeCodeCamp.org',
+      thumbnails: { high: { url: 'https://i.ytimg.com/vi/rfscVS0vtbw/hqdefault.jpg' } },
+      description: 'Full introduction to Python core concepts.'
+    }
+  },
+  {
+    id: { videoId: '_uQrJ0TkZlc' },
+    snippet: {
+      title: 'Python Tutorial - Full Course for Beginners',
+      channelTitle: 'Programming with Mosh',
+      thumbnails: { high: { url: 'https://i.ytimg.com/vi/_uQrJ0TkZlc/hqdefault.jpg' } },
+      description: 'Comprehensive Python tutorial for beginners.'
+    }
+  },
+  {
+    id: { videoId: 'PkZNo7MFNFg' },
+    snippet: {
+      title: 'Learn JavaScript - Full Course for Beginners',
+      channelTitle: 'freeCodeCamp.org',
+      thumbnails: { high: { url: 'https://i.ytimg.com/vi/PkZNo7MFNFg/hqdefault.jpg' } },
+      description: 'Complete JavaScript course for beginners.'
+    }
+  },
+  {
+    id: { videoId: 'W6NZfCO5SIk' },
+    snippet: {
+      title: 'JavaScript Tutorial for Beginners: Learn JavaScript in 1 Hour',
+      channelTitle: 'Programming with Mosh',
+      thumbnails: { high: { url: 'https://i.ytimg.com/vi/W6NZfCO5SIk/hqdefault.jpg' } },
+      description: 'Quick JavaScript crash course.'
+    }
+  },
+  {
+    id: { videoId: 'bMknfKXIFA8' },
+    snippet: {
+      title: 'React Course - Beginner\'s Tutorial',
+      channelTitle: 'freeCodeCamp.org',
+      thumbnails: { high: { url: 'https://i.ytimg.com/vi/bMknfKXIFA8/hqdefault.jpg' } },
+      description: 'Comprehensive React course.'
+    }
+  },
+  {
+    id: { videoId: 'TlB_eWDSMt4' },
+    snippet: {
+      title: 'Node.js Tutorial for Beginners',
+      channelTitle: 'Programming with Mosh',
+      thumbnails: { high: { url: 'https://i.ytimg.com/vi/TlB_eWDSMt4/hqdefault.jpg' } },
+      description: 'Backend development with Node.js.'
+    }
+  },
+  {
+    id: { videoId: 'F5mRW0jo-U4' },
+    snippet: {
+      title: 'Django Course',
+      channelTitle: 'freeCodeCamp.org',
+      thumbnails: { high: { url: 'https://i.ytimg.com/vi/F5mRW0jo-U4/hqdefault.jpg' } },
+      description: 'Web apps with Django.'
+    }
+  },
+  {
+    id: { videoId: 'HXV3zeQKqGY' },
+    snippet: {
+      title: 'SQL Tutorial - Full Database Course',
+      channelTitle: 'freeCodeCamp.org',
+      thumbnails: { high: { url: 'https://i.ytimg.com/vi/HXV3zeQKqGY/hqdefault.jpg' } },
+      description: 'SQL and database fundamentals.'
+    }
+  }
+];
+
+const hashString = (s) => {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) {
+    h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  }
+  return h;
+};
+
 const getFallbackVideos = (skill) => {
   const normalizedSkill = skill.toLowerCase();
   if (FALLBACK_RECOMMENDATIONS[normalizedSkill]) {
-    return FALLBACK_RECOMMENDATIONS[normalizedSkill];
+    const desired = 3;
+    const baseList = [...FALLBACK_RECOMMENDATIONS[normalizedSkill]];
+    if (baseList.length >= desired) return baseList.slice(0, desired);
+    const existingIds = new Set(baseList.map(v => v.id.videoId));
+    const base = hashString(skill);
+    const poolSize = GENERIC_FALLBACK_POOL.length;
+    let i = 0;
+    while (baseList.length < desired && i < poolSize * 2) {
+      const idx = (base + i) % poolSize;
+      const item = GENERIC_FALLBACK_POOL[idx];
+      if (!existingIds.has(item.id.videoId)) {
+        baseList.push({
+          id: { videoId: item.id.videoId },
+          snippet: {
+            title: `${item.snippet.title} • ${skill}`,
+            channelTitle: item.snippet.channelTitle,
+            thumbnails: item.snippet.thumbnails,
+            description: `Recommended resource while you learn ${skill}.`
+          },
+          url: `https://www.youtube.com/watch?v=${item.id.videoId}`
+        });
+        existingIds.add(item.id.videoId);
+      }
+      i++;
+    }
+    return baseList;
   }
   
-  // Generic fallback for unknown skills
-  return [
-    {
-      id: { videoId: 'rfscVS0vtbw' },
+  const count = 3;
+  const base = hashString(skill);
+  const poolSize = GENERIC_FALLBACK_POOL.length;
+  const picks = [];
+  for (let i = 0; i < count; i++) {
+    const idx = (base + i) % poolSize;
+    const item = GENERIC_FALLBACK_POOL[idx];
+    picks.push({
+      id: { videoId: item.id.videoId },
       snippet: {
-        title: `Learn ${skill} - Complete Tutorial`,
-        channelTitle: 'freeCodeCamp.org',
-        thumbnails: { high: { url: 'https://i.ytimg.com/vi/rfscVS0vtbw/hqdefault.jpg' } },
-        description: `Comprehensive guide to mastering ${skill}.`
+        title: `${item.snippet.title} • ${skill}`,
+        channelTitle: item.snippet.channelTitle,
+        thumbnails: item.snippet.thumbnails,
+        description: `Recommended resource while you learn ${skill}.`
       },
-      url: `https://www.youtube.com/results?search_query=learn+${skill}`
-    }
-  ];
+      url: `https://www.youtube.com/watch?v=${item.id.videoId}`
+    });
+  }
+  return picks;
 };
 
 export const fetchYouTubeRecommendations = async (skills) => {
@@ -142,7 +256,7 @@ export const fetchYouTubeRecommendations = async (skills) => {
       const response = await axios.get(YOUTUBE_API_URL, {
         params: {
           part: 'snippet',
-          maxResults: 3,
+          maxResults: 4,
           q: `learn ${skill} tutorial`,
           key: YOUTUBE_API_KEY,
           type: 'video',
