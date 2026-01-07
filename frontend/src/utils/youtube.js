@@ -3,6 +3,28 @@ import axios from 'axios';
 const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
 const YOUTUBE_API_URL = 'https://www.googleapis.com/youtube/v3/search';
 
+const CANONICAL_SKILL_MAP = {
+  'react.js': 'react',
+  'reactjs': 'react',
+  'js': 'javascript',
+  'node': 'node.js',
+  'nodejs': 'node.js',
+  'postgres': 'sql',
+  'postgresql': 'sql',
+  'mysql': 'sql',
+  'mssql': 'sql',
+  'ms sql': 'sql',
+  'sql server': 'sql',
+  'oop': 'java',
+  'frontend': 'javascript',
+  'backend': 'python',
+};
+
+const canonicalizeSkill = (skill) => {
+  const s = (skill || '').toLowerCase().trim();
+  return CANONICAL_SKILL_MAP[s] || s.replace(/\s+/g, ' ');
+};
+
 // Fallback recommendations in case API fails or quota exceeded
 const FALLBACK_RECOMMENDATIONS = {
   python: [
@@ -57,11 +79,40 @@ const FALLBACK_RECOMMENDATIONS = {
         description: 'The course is designed for beginners to SQL and database management systems, and will introduce you to common database management topics.'
       }
     }
+  ],
+  django: [
+    {
+      id: { videoId: 'rHux0gMZ3Eg' },
+      snippet: {
+        title: 'Django Course - Full Tutorial for Beginners',
+        channelTitle: 'freeCodeCamp.org',
+        thumbnails: { high: { url: 'https://i.ytimg.com/vi/rHux0gMZ3Eg/hqdefault.jpg' } },
+        description: 'Learn Django in this full course for beginners.'
+      }
+    },
+    {
+      id: { videoId: 'F5mRW0jo-U4' },
+      snippet: {
+        title: 'Django For Everybody - Full Python University Course',
+        channelTitle: 'freeCodeCamp.org',
+        thumbnails: { high: { url: 'https://i.ytimg.com/vi/F5mRW0jo-U4/hqdefault.jpg' } },
+        description: 'Django tutorial taught by Dr. Chuck from the University of Michigan.'
+      }
+    },
+    {
+      id: { videoId: '_ph8GF84fX4' },
+      snippet: {
+        title: 'Django Tutorial for Beginners',
+        channelTitle: 'Tech With Tim',
+        thumbnails: { high: { url: 'https://i.ytimg.com/vi/_ph8GF84fX4/hqdefault.jpg' } },
+        description: 'Build websites with Django step by step.'
+      }
+    }
   ]
 };
 
 const getFallbackVideos = (skill) => {
-  const normalizedSkill = skill.toLowerCase();
+  const normalizedSkill = canonicalizeSkill(skill);
   if (FALLBACK_RECOMMENDATIONS[normalizedSkill]) {
     return FALLBACK_RECOMMENDATIONS[normalizedSkill];
   }
@@ -89,7 +140,8 @@ export const fetchYouTubeRecommendations = async (skills) => {
   // If no API key, return fallbacks immediately
   if (!YOUTUBE_API_KEY) {
     console.warn('No YouTube API key found, using fallback recommendations');
-    skills.forEach(skill => {
+    skills.forEach(s => {
+      const skill = canonicalizeSkill(s);
       recommendations[skill] = getFallbackVideos(skill).map(video => ({
         video_id: video.id.videoId,
         title: video.snippet.title,
@@ -104,13 +156,14 @@ export const fetchYouTubeRecommendations = async (skills) => {
   }
 
   // Fetch from API
-  const promises = skills.map(async (skill) => {
+  const promises = skills.map(async (s) => {
+    const skill = canonicalizeSkill(s);
     try {
       const response = await axios.get(YOUTUBE_API_URL, {
         params: {
           part: 'snippet',
           maxResults: 3,
-          q: `learn ${skill} tutorial`,
+          q: `learn ${skill} tutorial programming`,
           key: YOUTUBE_API_KEY,
           type: 'video',
           relevanceLanguage: 'en'
