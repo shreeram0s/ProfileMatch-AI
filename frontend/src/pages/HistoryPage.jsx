@@ -242,13 +242,6 @@ const HistoryPage = () => {
                   >
                     {searchLoading ? 'Searching...' : 'Search'}
                   </button>
-                  <button
-                    onClick={searchSavedReports}
-                    disabled={searchLoading || !searchTerm.trim()}
-                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50"
-                  >
-                    {searchLoading ? 'Searching...' : 'Search'}
-                  </button>
                   {searchTerm.trim() && (
                     <button
                       onClick={deleteReportsByName}
